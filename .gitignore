@@ -1,0 +1,10 @@
+data/*
+old/*
+tmp/*
+log/*
+output/*
+*.pyc
+*.kdev4
+*.dump*
+*.txt
+*pycache*
