@@ -1,0 +1,50 @@
+The internal datastucture used by ids.py looks like this:
+
+srcip:                                                                  source ip of the attacker
+      start_time:                                                       contains the first time this source was seen
+      end_time:                                                         contains the last time this source was seen
+      total_duration:                                                   duration this source was seen
+      targets:                                                          list of destination ip
+              dstip:                                                    target ip
+                    packet_mean:                                        mean of packets send from src to dstip per flow
+                    packet_stdev:                                       packets standard deviation
+                    bytes_mean:                                         mean of bytes send from src to dstip per flow
+                    bytes_stdev:                                        bytes standard deviation
+                    duration_mean:                                      mean of duration per flow
+                    duration_stdev:                                     duration standard deviation
+                    flows:                                              flow counter
+                    activity:                                           percentage of activity during seen connections
+                    flow_duration:                                      acumulative duration of all flows
+                    total_duration:                                     time between first seen and last seen
+                    first_seen:                                         first time connection between src and dst is seen
+                    last_seen:                                          last time connection between src and dst is seen
+                    signature:                                          contains the matching signature
+                    url:                                                list of urls accessed, if available
+              dstip:
+                    ...
+                    ...
+              ...:
+                    ...
+              ...:
+                    ...
+srcip:
+      ...
+      ...
+      ...:
+              ...:
+                    ...
+                    ...
+...:
+...:
+
+The Absolom algorithm uses different fields under the dstip:
+
+dstip:
+    packet_mean:                                                        same as above
+    bytes_mean:                                                         same as above
+    flows:                                                              flows that match the given signature
+    cusum:                                                              average cusum streak
+    first_seen:                                                         same as above
+    last_seen:                                                          same as above
+    signature:                                                          same as above
+    url:                                                                same as above

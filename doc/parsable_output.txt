@@ -1,0 +1,9 @@
+The parsable output has the following stucture:
+
+srcip|dstip|port|packet_mean|packet_stdev|bytes_mean|bytes_stdev|duration_mean|duration_stdev|flows|flow_duration|activity|total_duration|first_seen|last_seen|signature|urls
+
+The last field, the urls, are set up as follows: url\count\url\count... etc
+The count is how many times the page has been accessed by that srcip.
+
+In the case of Absolom the output is similar:
+srcip|dstip|port|packet_mean|bytes_mean|attack|first_seen|last_seen|signature|urls
