@@ -8,6 +8,7 @@ import sys
 
 def get_conf_file(conf_name):
   """Function for converting a config name to a path to the actual config file.
+  
   :param conf_name: specifies the config name
   :type conf_name: str
   :return: path to the file as a string
@@ -62,7 +63,6 @@ def get_all_options(conf_name, config_parser):
 
 def read_config(conf_name):
   """Function for parsing config files.
-
   :param conf_name: specifies the config file to be read
   :type conf_name: str
   """
@@ -72,12 +72,18 @@ def read_config(conf_name):
   return config
 
 def get_signatures(config_parser):
+  """Lists the configured signatures
+  :return: list of signatures
+  """
   if not isinstance(config_parser, configparser.ConfigParser):
     raise TypeError("Wrong arguments given")
   options = config_parser.sections()
   return options
 
 def read_signatures():
+  """Similair to read_config, however it is specified to the signatures.
+  :return: dictionary of signatures with their options
+  """
   conf_file = get_conf_file('signatures')
   config_parser = get_parser(conf_file)
   signatures = get_signatures(config_parser)

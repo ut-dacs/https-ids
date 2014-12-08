@@ -10,6 +10,9 @@ Those are the rules... that I just made up!...and I'm backing it up with this gu
 import sys
 
 def get_default():
+  """Sets the default flags, add new flags here
+  :return: a dictionary of flags
+  """
   flags = {
     'absolom':            False,
     'automate':           False,
@@ -47,8 +50,9 @@ def get_default():
   }
   return flags
 
-# Function for showing the help text
 def show_help():
+  """Function for showing usage/help output
+  """
   flags = get_default()
   help = {'absolom':            'Enables the absolute detection algorithm',
           'break':              'Break the script at a certain point. (Requires an argument)',
@@ -84,6 +88,9 @@ def show_help():
   raise SystemExit()
 
 def get_flags():
+  """Function for going through the system arguments and setting options in the default flags.
+  :return: dictionary of flags
+  """
   flags = get_default()
 
   # Go through the flags for the arguments
