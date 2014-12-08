@@ -5,6 +5,7 @@ import configparser
 sys.path.append(os.path.abspath(os.path.curdir))
 
 import lib.config
+import lib.flags
 
 class Test_lib_config(unittest.TestCase):
   def setUp(self):
@@ -100,6 +101,40 @@ class Test_lib_config(unittest.TestCase):
     for signature in signatures:
       self.assertIsInstance(signatures[signature], dict)
       self.assertGreater(len(signatures[signature]), 0)
+
+class Test_lib_flags(unittest.TestCase):
+  def test_get_default(self):
+    flags = lib.flags.get_default()
+    self.assertIsInstance(flags, dict)
+    self.assertGreater(len(flags), 0)
+
+  def test_show_help(self):
+    self.assertRaises(SystemExit, lib.flags.show_help)
+
+  def test_get_flags(self):
+    flags = lib.flags.get_flags()
+    self.assertIsInstance(flags, dict)
+    self.assertGreater(len(flags), 0)
+
+  def test_flip_flag(self):
+    state = lib.flags.get_default()['debug']
+    sys.argv.append("--debug")
+    self.assertIsNot(lib.flags.get_flags()['debug'], state)
+    sys.argv.remove("--debug")
+
+  def test_set_value(self):
+    # No value specified
+    sys.argv.append("--threads")
+    self.assertRaises(IndexError, lib.flags.get_flags)
+
+    # Wrong argument
+    sys.argv.append("y")
+    self.assertRaises(ValueError, lib.flags.get_flags)
+    sys.argv.remove("y")
+
+    # Correct argument
+    sys.argv.append("10")
+    self.assertEqual(lib.flags.get_flags()['threads_value'], 10)
 
 if __name__ == '__main__':
   if not '--verbose' in sys.argv:
