@@ -11,6 +11,7 @@ import sys
 
 def get_default():
   """Sets the default flags, add new flags here
+
   :return: a dictionary of flags
   """
   flags = {
@@ -89,6 +90,7 @@ def show_help():
 
 def get_flags():
   """Function for going through the system arguments and setting options in the default flags.
+
   :return: dictionary of flags
   """
   flags = get_default()

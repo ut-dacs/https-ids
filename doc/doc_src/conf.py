@@ -24,6 +24,7 @@ os.chdir(os.path.abspath('../../'))
 
 import lib.config
 import lib.flags
+import lib.printer
 
 # -- General configuration ------------------------------------------------
 

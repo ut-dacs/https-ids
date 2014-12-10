@@ -13,9 +13,11 @@ Contents:
 
    lib-config
    lib-flags
+   lib-printer
 
 .. include lib-config.rst
 .. include lib-flags.rst
+.. include lib-printer.rst
 
 
 
