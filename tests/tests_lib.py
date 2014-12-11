@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.curdir))
 import lib.config
 import lib.flags
 import lib.printer
+import lib.worker
 
 class Test_lib_config(unittest.TestCase):
   def setUp(self):
@@ -138,9 +139,9 @@ class Test_lib_flags(unittest.TestCase):
     sys.argv.append("10")
     self.assertEqual(lib.flags.get_flags()['threads_value'], 10)
 
+@unittest.skip("Annoying pagers")
 class Test_lib_printer(unittest.TestCase):
   def setUp(self):
-    self.printer = lib.printer.Printer()
     self.signatures = {
       'test': {},
       'ba': {},
@@ -270,6 +271,20 @@ class Test_lib_printer(unittest.TestCase):
   def test_print_parsable_data(self):
     with lib.printer.open_parsable_file(self.output_dir, self.signatures, self.date) as output_file:
       lib.printer.print_parsable_data(output_file, self.data)
+
+class Test_lib_worker(unittest.TestCase):
+  nfdump_file = "/home/lordievader/Documents/UT/BachelorAssignment/data/nfdump/test-data/nfcapd.201407011555"
+  def setUp(self):
+    self.worker = lib.worker.Worker()
+
+  def test_preselect_file(self):
+    signatures = lib.config.read_signatures()
+    self.worker.preselect_file(self.nfdump_file, signatures)
+
+  def test_data_file(self):
+    signatures = lib.config.read_signatures()
+    ip_list = self.worker.preselect_file(self.nfdump_file, signatures)
+    self.fail(self.worker.data_file(self.nfdump_file, signatures, ip_list))
 
 if __name__ == '__main__':
   if not '--verbose' in sys.argv:
