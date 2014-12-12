@@ -3,12 +3,15 @@ import sys
 import os
 import configparser
 import subprocess
+import logging
+
 sys.path.append(os.path.abspath(os.path.curdir))
 
 import lib.config
 import lib.flags
 import lib.printer
 import lib.worker
+import lib.logsetup
 
 class Test_lib_config(unittest.TestCase):
   def setUp(self):
@@ -272,19 +275,49 @@ class Test_lib_printer(unittest.TestCase):
     with lib.printer.open_parsable_file(self.output_dir, self.signatures, self.date) as output_file:
       lib.printer.print_parsable_data(output_file, self.data)
 
+class Test_lib_logsetup(unittest.TestCase):
+  @unittest.skipUnless(sys.version_info >= (3,4), "requires at least Python3.4")
+  def test_log_setup(self):
+      item = 'HTTPS-IDS'
+      test = logging.getLogger(item)
+      logger = lib.logsetup.log_setup(item, '/tmp/test.log', 'DEBUG')
+      with self.assertLogs(item, level='DEBUG') as cm:
+        logger.debug('first message')
+        logger.error('second message')
+
+      self.assertEqual(cm.output, ['DEBUG:{0}:first message'.format(item),
+                                    'ERROR:{0}:second message'.format(item)])
+
 class Test_lib_worker(unittest.TestCase):
   nfdump_file = "/home/lordievader/Documents/UT/BachelorAssignment/data/nfdump/test-data/nfcapd.201407011555"
   def setUp(self):
     self.worker = lib.worker.Worker()
+    self.signatures = lib.config.read_signatures()
+    self.logger = lib.logsetup.log_setup('Unittest', None, 'DEBUG')
 
   def test_preselect_file(self):
-    signatures = lib.config.read_signatures()
-    self.worker.preselect_file(self.nfdump_file, signatures)
+    self.worker.preselect_file(self.nfdump_file, self.signatures)
 
   def test_data_file(self):
-    signatures = lib.config.read_signatures()
-    ip_list = self.worker.preselect_file(self.nfdump_file, signatures)
-    self.fail(self.worker.data_file(self.nfdump_file, signatures, ip_list))
+    ip_list = self.worker.preselect_file(self.nfdump_file, self.signatures)
+    self.worker.data_file(self.nfdump_file, self.signatures, ip_list)
+
+  def test_run(self):
+    for item in self.signatures.copy():
+      if item != 'everything':
+        del self.signatures[item]
+
+    nfdump_files = []
+    dir = "/home/lordievader/Documents/UT/BachelorAssignment/data/nfdump/test-data/"
+    for i,item in enumerate(os.listdir(dir)):
+      nfdump_files.append(os.path.join(dir,item))
+      if i >= 5:
+        break
+
+    self.worker.signatures = self.signatures
+    self.worker.logger = self.logger.getChild('worker')
+    self.worker.nfdump_files = nfdump_files
+    self.worker.run()
 
 if __name__ == '__main__':
   if not '--verbose' in sys.argv:
