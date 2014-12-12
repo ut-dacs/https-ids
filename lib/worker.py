@@ -143,7 +143,6 @@ class Worker(threading.Thread):
     """
     filter_dictionary = {}
     filter_list = []
-    ip_list = []
     for ip in ip_list:
       srcip = lib.functions.convert_ipaddress(ip[0])
       dstip = lib.functions.convert_ipaddress(ip[1])
@@ -165,11 +164,12 @@ class Worker(threading.Thread):
     filter = ") or (".join(filter_list)
     filter = "({0})".format(filter)
     filter_path = self.write_filter(filter)
+    ports = list(filter_dictionary.keys())
     if self.flags['break_value'] == 'dfilter':
       raise SystemExit("Break at preselect filter")
-    return filter_path
+    return filter_path, ports
 
-  def data_line(self, data, line):
+  def data_line(self, data, ports, line):
     """Function for processing data lines
 
     :param data: data dictionary
@@ -205,7 +205,7 @@ class Worker(threading.Thread):
       raise OverflowError("Odd length line")
 
     # Add the port to the destination (typically 80, 443)
-    if int(dst_port) in self.port:
+    if int(dst_port) in ports:
 
       sa_3 = lib.functions.convert_ipaddress(sa_3)
       da_3 = "{0}:{1}".format(lib.functions.convert_ipaddress(da_3), dst_port)
@@ -249,7 +249,7 @@ class Worker(threading.Thread):
     """Function for reading data files
 
     """
-    filter = self.data_filter(ip_list)
+    filter, ports = self.data_filter(ip_list)
     port = []
     data = {}
     for signature in signatures:
@@ -259,8 +259,9 @@ class Worker(threading.Thread):
     process = subprocess.Popen(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,  bufsize=1)
 
     for line in iter(process.stdout.readline, b''):
-        data = self.data_line(data, line)
-    data = process.communicate()
+        data = self.data_line(data, ports, line)
+    #data = process.communicate()
+    process.communicate()
 
     #self.absolom.flush(self)
     #self.processed_data = self.attack
@@ -361,8 +362,6 @@ class Worker(threading.Thread):
           processed_data[srcip]['targets'][dstip]['url'][url] = 1
     return processed_data
 
-
-
   def match_signature(self, data, signatures, srcip, dstip):
     """Matches a signature to the source destination tuple
 
@@ -457,9 +456,10 @@ class Worker(threading.Thread):
         raise SystemExit('Break at preselect')
 
       new_data = self.data_file(nfdump_file, self.signatures, ip_list)
+      print(new_data)
       # TODO: make a data merger
       data_gathering_time = time.time()
-      if self.ids.flags['break_value'] == 'dfile':
+      if self.flags['break_value'] == 'dfile':
         raise SystemExit("Break at data file")
 
       #if self.ids.flags['absolom'] == False:

@@ -88,7 +88,7 @@ def merge_move_target(src_dict, dst_dict, srcip, dstip):
   :type dstip: string
   :return: dst_dict
   """
-  for key in counting[srcip]['targets'][dstip]:
+  for key in src_dict[srcip]['targets'][dstip]:
     if key == "first_seen":
       dst_dict[srcip]['start_time'] = min([src_dict['start_time'], dst_dict['start_time']])
       dst_dict[srcip]['targets'][dstip][key] = min([src_dict[srcip]['targets'][dstip][key], dst_dict[srcip]['targets'][dstip][key]])
@@ -103,10 +103,10 @@ def merge_move_target(src_dict, dst_dict, srcip, dstip):
     elif key in ['flows', 'cusum']:
       dst_dict[srcip]['targets'][dstip][key] += src_dict[srcip]['targets'][dstip][key]
 
-   elif key in ['signature', 'url']:
-    item = src_dict[srcip]['targets'][dstip][key]
-    if item in dst_dict[srcip]['targets'][dstip][key]:
-      dst_dict[srcip]['targets'][dstip][key][item] += src_dict[srcip]['targets'][dstip][key][item]
+    elif key in ['signature', 'url']:
+      item = src_dict[srcip]['targets'][dstip][key]
+      if item in dst_dict[srcip]['targets'][dstip][key]:
+        dst_dict[srcip]['targets'][dstip][key][item] += src_dict[srcip]['targets'][dstip][key][item]
 
     else:
       dst_dict[srcip]['targets'][dstip][key][item] = src_dict[srcip]['targets'][dstip][key][item]
