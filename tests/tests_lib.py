@@ -12,6 +12,7 @@ import lib.flags
 import lib.printer
 import lib.worker
 import lib.logsetup
+import lib.ids
 
 class Test_lib_config(unittest.TestCase):
   def setUp(self):
@@ -288,6 +289,7 @@ class Test_lib_logsetup(unittest.TestCase):
       self.assertEqual(cm.output, ['DEBUG:{0}:first message'.format(item),
                                     'ERROR:{0}:second message'.format(item)])
 
+@unittest.skip("Yayy speed!")
 class Test_lib_worker(unittest.TestCase):
   nfdump_file = "/home/lordievader/Documents/UT/BachelorAssignment/data/nfdump/test-data/nfcapd.201407011555"
   def setUp(self):
@@ -318,6 +320,45 @@ class Test_lib_worker(unittest.TestCase):
     self.worker.logger = self.logger.getChild('worker')
     self.worker.nfdump_files = nfdump_files
     self.worker.run()
+
+class Test_lib_ids(unittest.TestCase):
+  basedir = 'tests/nfdump'
+  def setUp(self):
+    logger = lib.logsetup.log_setup('Unittest', None, 'DEBUG')
+    self.ids = lib.ids.IDS(logger)
+
+  def test_filter_signatures(self):
+    number = "1,3".split(',')
+    self.ids.filter_signatures(number)
+
+  def test_coordinates_signatures(self):
+    number = "1,3".split(',')
+    self.ids.filter_signatures(number)
+    self.ids.coordinates_signatures()
+
+  def test_expander(self):
+    top = '20140101'
+    bottom = '20151230'
+    nfdump_files = self.ids.expander(self.basedir, top, bottom)
+
+  def test_process_filenames(self):
+    path = ":".join([self.basedir, "20140101"])
+    self.assertRaises(SystemExit, self.ids.process_filenames, path)
+
+    path = ":".join([self.basedir, "20140101", "20150101"])
+    self.assertGreater(len(self.ids.process_filenames(path)), 0)
+
+  def test_process_files(self):
+    path = ":".join([self.basedir, "20140101", "20150101"])
+    nfdump_files = self.ids.process_filenames(path)
+    number = "1".split(',')
+
+    nfdump_files = nfdump_files[1:5]
+
+    self.ids.filter_signatures(number)
+    self.ids.coordinates_signatures()
+
+    self.ids.process_files(nfdump_files)
 
 if __name__ == '__main__':
   if not '--verbose' in sys.argv:
