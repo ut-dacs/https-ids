@@ -25,6 +25,7 @@ class Worker(threading.Thread):
     self.counting = {}
     self.everything = {}
     self.flags = lib.flags.get_flags()
+    self.result = {}
 
   def write_filter(self, filter):
     """Function for writing nfdump filters to file, so the stdin limit doesn't affect us.
