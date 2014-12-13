@@ -8,114 +8,91 @@ import math
 import traceback
 import sys
 
-class SigWorker(threading.Thread):
+import lib.absolom
+import lib.functions
 
-  def __init__(self):
-
+class Worker(threading.Thread):
+  """Signature worker class
+  """
+  def __init__(self, logger, flags, signatures, coordinates, data):
     threading.Thread.__init__(self)
-    import lib.absolom
-    self.absolom = lib.absolom
+    self.logger = logger.getChild('sigworker')
+    self.flags = flags
+    self.signatures = signatures
+    self.coordinates = coordinates
+    self.data = data
 
-  # Main control function
-  def run(self):
+  def match_signature(self, data, signatures, srcip, dstip):
+    """Function for matching a signature
 
-    filtered_data = {}
-    flow_threshold = int(self.ids.flags['flows_value'])
-    for srcip in self.data.keys():
-
-      for dstip in self.data[srcip]['targets'].keys():
-
-        if self.data[srcip]['targets'][dstip]['flows'] >= flow_threshold:
-
-          signature = self.match_signature(srcip, dstip)
-          if self.ids.flags['absolom'] == True:
-
-            signature_absolom = self.absolom.match_signature(self,self.data,srcip,dstip)
-            if signature != signature_absolom and signature_absolom == 'everything':
-
-              #self.logger.error("Signature does not match with Absolom signature!\n{0} -- {1}: ({2}, {3}, P:{4}, B:{5})".format(signature, signature_absolom, srcip, dstip,
-              #self.ids.data[srcip]['targets'][dstip]['packet_mean'],
-              #self.ids.data[srcip]['targets'][dstip]['bytes_mean']))
-              signature = signature_absolom
-          self.data[srcip]['targets'][dstip]['signature'] = signature
-          if signature != None:
-
-            if not srcip in filtered_data:
-
-              filtered_data[srcip] = self.data[srcip].copy()
-              filtered_data[srcip]['targets'] = {}
-              filtered_data[srcip]['targets'][dstip] = self.data[srcip]['targets'][dstip]
-            else:
-
-              filtered_data[srcip]['targets'][dstip] = self.data[srcip]['targets'][dstip]
-    self.result = filtered_data 
-
-  def match_signature(self, srcip, dstip):
-
-    # Coordinates of the target: X,Y and Z
-    x = float(self.ids.data[srcip]['targets'][dstip]['packet_mean'])
-    y = float(self.ids.data[srcip]['targets'][dstip]['bytes_mean'])
-    #z = float(self.ids.data[srcip]['targets'][dstip]['duration_mean'])
+    :param data: data dictionary
+    :type data: dictionary
+    :param signatures: signatures dictionary
+    :type signatures: dictionary
+    :param srcip: source ip
+    :type srcip: string
+    :param dstip: destination ip
+    :type dstip: string
+    :return: matched signature
+    """
+    x = float(data[srcip]['targets'][dstip]['packet_mean'])
+    y = float(data[srcip]['targets'][dstip]['bytes_mean'])
     port = int(dstip.split(":")[1])
 
-    # Calculate the differences and the distance
     distances = {}
-
-    for signature in self.ids.signature:
-
-      if port == int(self.ids.signature[signature]['port']):
-
-        # The point still needs to fall within the signature
-        accepted = False
-        if self.ids.flags['packets'] == True and self.ids.flags['bytes'] == True and\
-            (x >= float(self.ids.signature[signature]['packets_low']) and x <= float(self.ids.signature[signature]['packets_high'])) and\
-            (y >= float(self.ids.signature[signature]['bytes_low']) and y <= float(self.ids.signature[signature]['bytes_high'])):
-
-          accepted = True
-
-        elif self.ids.flags['packets'] == True and self.ids.flags['bytes'] == False and\
-            (x >= float(self.ids.signature[signature]['packets_low']) and x <= float(self.ids.signature[signature]['packets_high'])):
-
-          accepted = True
-
-        elif self.ids.flags['packets'] == False and self.ids.flags['bytes'] == True and\
-            (y >= float(self.ids.signature[signature]['bytes_low']) and y <= float(self.ids.signature[signature]['bytes_high'])):
-
-          accepted = True
-        elif self.ids.flags['packets'] == False and self.ids.flags['bytes'] == False and\
-            (x >= float(self.ids.signature[signature]['packets_low']) and x <= float(self.ids.signature[signature]['packets_high'])):
-
-          accepted = True
-        #if signature == "everything" and accepted == False:
-
-          #self.logger.error("{0} -- {1}".format(self.ids.data[srcip]['targets'][dstip]['packet_mean'],self.ids.data[srcip]['targets'][dstip]['bytes_mean']))
+    for signature in signatures:
+      if port == int(signatures[signature]['port']):
+        accepted = lib.functions.check_accept(self.flags, signatures, signature, x, y)
         if accepted == True:
-
-          x_diff = self.coordinates[signature]['x'] - x
-          y_diff = self.coordinates[signature]['y'] - y
-          #z_diff = self.coordinates[signature]['z'] - z
-
-          # Pythagoras
-          d = math.pow(x_diff,2) + math.pow(y_diff, 2) # + math.pow(z_diff, 2)
-          d = math.sqrt(d)
+          d = lib.functions.pythagoras(x, y, self.coordinates[signature]['x'], self.coordinates[signature]['y'])
           distances[signature] = d
 
-    try:
+    if len(distances) == 0:
+      signature = None
 
+    else:
       min_value = min(distances.values())
       match = []
       for item in distances:
-
         if distances[item] == min_value:
-
           match.append(item)
-      signature = match[0]
-    except:
+      if len(match) > 0:
+        signature = match[0]
 
-      signature = None
+      else:
+        signature = None
     return signature
 
-  # Returns the data to the host process
-  def get_result(self):
+  def run(self):
+    """Main function of the signature worker. Matches signatures in the given data.
+    """
+    filtered_data = {}
+    cusum_threshold = int(self.flags['cusum_value'])
+    for srcip in self.data.keys():
+      for dstip in self.data[srcip]['targets'].keys():
+        if self.data[srcip]['targets'][dstip]['cusum'] >= cusum_threshold:
+          signature = self.match_signature(self.data, self.signatures, srcip, dstip)
+          signature_absolom = lib.absolom.match_signature(self.data, srcip, dstip)
+          if self.flags['break'] and self.flags['break_value'] == 'matching':
+            self.logger.debug((signature, signature_absolom))
 
+          if signature != signature_absolom and signature_absolom == 'everything':
+            self.logger.error("Signature does not match with Absolom signature!\n{0} -- {1}".format(signature, signature_absolom))
+            signature = signature_absolom
+          self.data[srcip]['targets'][dstip]['signature'] = signature
+          if signature != None:
+            if not srcip in filtered_data:
+              filtered_data[srcip] = self.data[srcip].copy()
+              filtered_data[srcip]['targets'] = {}
+              filtered_data[srcip]['targets'][dstip] = self.data[srcip]['targets'][dstip]
+
+            else:
+              filtered_data[srcip]['targets'][dstip] = self.data[srcip]['targets'][dstip]
+    self.result = filtered_data
+
+  def get_result(self):
+    """Returns the result.
+
+    :return: data dictionary
+    """
     return self.result
