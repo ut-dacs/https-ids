@@ -6,166 +6,118 @@ import logging
 import logging.config
 import sys
 import traceback
+import time
+import datetime
 
 # Custom lib
-from lib.config import config
-from lib.ids import IDS
-from lib.worker import Worker
-from lib.signature import SigWorker
-from lib.printer import Printer
-from lib.flags import *
-
-# If not enough arguments are given, show the help
-if len(sys.argv) == 1:
-
-  show_help()
-  sys.exit()
+import lib.config
+import lib.flags
+import lib.logsetup
+import lib.ids
+import lib.printer
+import lib.signature
 
 # This is where the magic happens
 def main():
+  # Init phase
+  path = sys.argv[1]
+  flags = lib.flags.get_flags()
+  config = lib.config.read_config('ids')
+  if flags['debug'] == True:
+    config['log_level'] = "DEBUG"
 
-  # nfdump file is the first argument
-  nfdump_file = sys.argv[1]
+  logger = lib.logsetup.log_setup(config['log_name'], config['log_file'], config['log_level'])
+  logger.info("Starting Intrusion Detection System")
+  logger.debug("Init phase")
+  ids = lib.ids.IDS(logger, flags, config)
+  if flags['break'] and flags['break_value'] == 'init':
+    logger.debug(config)
+    logger.debug(flags)
+    raise SystemExit("Break at init")
 
-  # Setup logging
-  log_configured = False
-  try:
+  # Signature phase
+  logger.debug("Signature phase")
+  ids.load_signatures()
+  #ids.filter_signatures(['1','5'])
+  #ids.coordinates_signatures()
+  if flags['break'] and flags['break_value'] == 'signatures':
+    logger.debug(ids.signatures)
+    logger.debug(ids.coordinates)
+    raise SystemExit("Break at signatures")
 
-    # Try to load a nice log config
-    import yaml
-    f = open("conf/logging.conf", 'rb')
-    D = yaml.load(f)
-    D.setdefault('version', 1)
-    if flags['debug'] == True:
+  # Files phase
+  logger.debug("Files phase")
+  nfdump_files = ids.process_filenames(path)
+  if flags['break'] and flags['break_value'] == 'files':
+    logger.debug(nfdump_files)
+    raise SystemExit("Break at files")
 
-      D['handlers']['console']['level'] = 'DEBUG'
-    logging.config.dictConfig(D)
-    log_configured = True
+  # File processing phase
+  logger.debug("File processing phase")
+  data, counting, attack, everything = ids.process_files(nfdump_files)
+  if flags['break'] and flags['break_value'] == 'processing':
+    logger.debug(attack)
+    raise SystemExit("Break at processing")
 
-  except:
+  # Signature matching phase
+  logger.debug("Signature matching phase")
+  if len(attack) > 0:
+    attack = ids.process_match(attack)
 
-    if flags['debug'] == True:
+  if len(everything) > 0:
+    everything = lib.absolom.match_everything(everything)
 
-      logging.basicConfig(level=logging.DEBUG,
-                    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler("log/ids.log"),
-                              logging.StreamHandler()])
-    else:
+  if flags['break'] and flags['break_value'] == 'matching':
+    logger.debug(attack)
+    raise SystemExit("Break at matching")
 
-      logging.basicConfig(level=logging.INFO,
-                    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    handlers=[logging.FileHandler("log/ids.log"),
-                              logging.StreamHandler()])
-    logging.info("Using basic log config")
-  logging.info("Starting Intrusion Detection System")
+  # Counting phase
+  logger.debug("Signature counting phase")
+  sig_count = {}
+  if len(attack) > 0:
+    sig_count = ids.process_count(sig_count, attack)
 
-  # Create an ids object
-  ids = IDS()
-  ids.flags = flags
-  ids.show_help = show_help
-  ids.logger = logging.getLogger('IDS')
+  if 'everything' in ids.signatures and len(everything) > 0:
+    sig_count = ids.process_count(sig_count, everything)
 
-  # Create a printing object
-  printer = Printer()
-  printer.logger = logging.getLogger('Printer')
-  printer.ids = ids
+  if flags['break'] and flags['break_value'] == 'counting':
+    logger.debug(sig_count)
+    raise SystemExit("Break at counting")
 
-  # Show the flags and their values
-  ids.logger.debug("FLAGS: {0}".format(ids.flags))
-  if ids.flags['break'] and ids.flags['break_value'] == 'init':
+  # Sorting phase
+  logger.debug("Sorting phase")
+  attack = ids.process_sort(attack)
+  if 'everything' in ids.signatures:
+    everything = ids.process_sort(everything)
 
-    sys.exit()
+  # Printing phase
+  logger.debug("Printing/saving phase")
+  output_modules = flags['output_value'].split(',')
+  date = str(datetime.datetime.fromtimestamp(time.time())).split(" ")[0]
+  if 'pipe' in output_modules:
+    with lib.printer.open_parsable_file(ids.outputdir, ids.signatures, date) as pipe:
+      lib.printer.print_parsable_data(pipe, attack)
+      if 'everything' in ids.signatures:
+        lib.printer.print_parsable_data(pipe, everything)
 
-  # Actual ids calls
-  # Load the signature
-  ids.load_signature()
-  if ids.flags['break'] and ids.flags['break_value'] == 'signature':
+  if 'pager' in output_modules:
+    with lib.printer.open_pager(sys.stdout) as pager:
+      if 'everything' in ids.signatures:
+        attack = lib.absolom.merge_everything(attack, everything)
 
-    sys.exit()
+      lib.printer.print_data(pager, 'pager', ids.signatures, attack, sig_count)
 
-  # Process the filenames into a long list
-  ids.process_filenames(nfdump_file)
-  if ids.flags['break'] and ids.flags['break_value'] == 'files':
+  if 'disk' in output_modules:
+    with lib.printer.open_file(ids.outputdir, ids.signatures, date) as disk:
+      if 'everything' in ids.signatures:
+        attack = lib.absolom.merge_everything(attack, everything)
 
-    sys.exit()
-
-  # Process the files
-  ids.logger.info("Processing files")
-  ids.process_files()
-  logging.debug("{0} sources found".format(len(ids.data)))
-  if ids.flags['break'] and ids.flags['break_value'] == 'process':
-
-    sys.exit()
-
-  # Find the closest match
-  ids.logger.info("Matching signatures")
-  ids.process_match()
-
-  # Hack to get the data for everything through
-  if ids.flags['absolom'] == True and 'everything' in ids.signature.keys():
-
-    # Store the actual data somewhere
-    temp = ids.data.copy()
-
-    # Replace the data with everything
-    ids.data = ids.everything.copy()
-
-    # Match signatures
-    ids.process_match()
-
-    # And put the data back where they belong
-    ids.everything = ids.data.copy()
-    ids.data = temp.copy()
-
-    # Delete traces
-    del temp
-
-  # Little status message
-  logging.debug("{0} sources found".format(len(ids.data)))
-  if ids.flags['break'] and ids.flags['break_value'] == 'match':
-
-    sys.exit()
-
-  # Count signatures
-  ids.logger.info("Counting signatures")
-  ids.process_count()
-
-  # Do sources dissapear?
-  logging.debug("{0} sources found".format(len(ids.data)))
-  if ids.flags['break'] and ids.flags['break_value'] == 'count':
-
-    sys.exit()
-
-  # Sort the data
-  ids.logger.info("Sorting data")
-  ids.process_sort()
-
-  # Do sources dissapear?
-  logging.debug("{0} sources found".format(len(ids.data)))
-  if ids.flags['break'] and ids.flags['break_value'] == 'sort':
-
-    sys.exit()
-
-  # Calculate the time statistics if requested
-  if ids.flags['time'] == True:
-
-    ids.calculate_time()
-
-  # Print the output in someway
-  if 'pipe' in ids.flags['output_value']:
-
-    printer.save_data()
-    if ids.flags['break'] and ids.flags['break_value'] == 'save':
-
-      sys.exit()
-
-  if 'pager' in ids.flags['output_value'] or 'disk' in ids.flags['output_value']:
-
-    printer.print_results()
-    if ids.flags['break'] and ids.flags['break_value'] == 'print':
-
-      sys.exit()
+      lib.printer.print_data(disk, 'disk', ids.signatures, attack, sig_count)
+  if flags['break'] and flags['break_value'] == 'printing':
+    raise SystemExit("Break at printing")
 
 if __name__ == "__main__":
+  if len(sys.argv) == 1:
+    lib.flags.show_help()
 
   main()
