@@ -1,4 +1,5 @@
 import unittest
+import unittest.mock
 import sys
 import os
 import configparser
@@ -12,6 +13,7 @@ import lib.flags
 import lib.printer
 import lib.worker
 import lib.logsetup
+import lib.ids
 
 class Test_lib_config(unittest.TestCase):
   def setUp(self):
@@ -288,6 +290,7 @@ class Test_lib_logsetup(unittest.TestCase):
       self.assertEqual(cm.output, ['DEBUG:{0}:first message'.format(item),
                                     'ERROR:{0}:second message'.format(item)])
 
+@unittest.skip("Yayy speed!")
 class Test_lib_worker(unittest.TestCase):
   nfdump_file = "/home/lordievader/Documents/UT/BachelorAssignment/data/nfdump/test-data/nfcapd.201407011555"
   def setUp(self):
@@ -318,6 +321,15 @@ class Test_lib_worker(unittest.TestCase):
     self.worker.logger = self.logger.getChild('worker')
     self.worker.nfdump_files = nfdump_files
     self.worker.run()
+
+class Test_lib_ids(unittest.TestCase):
+  def setUp(self):
+    self.ids = lib.ids.IDS()
+
+  @unittest.mock.patch('builtins.input')
+  def test_load_signatures(self):
+    __builtins__.input = 1
+    self.ids.load_signatures()
 
 if __name__ == '__main__':
   if not '--verbose' in sys.argv:
