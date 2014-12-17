@@ -14,11 +14,11 @@ try:
   from termcolor import colored
 
 except ImportError:
+  print("Import failed")
   pass
 
 import lib.flags
 
-available_colors = ['magenta', 'white', 'blue', 'red',  'green', 'yellow']
 header_order = ['src','dst',
 
           'packet_mean', 'packet_stdev',
@@ -50,7 +50,6 @@ header_dict = { 'src': '{:>20}','dst':'{:>20}',
                 'reset': '{:>10}',
                 'cusum': '{:>10}',
               }
-sig_colors = {}
 
 def get_options():
   """Returns a string based on the given flags.
@@ -71,6 +70,19 @@ def get_options():
   options = "{0}-{1}".format(options, flags['cusum_value'])
   return options
 
+def get_action(action):
+  """Returns the appropriate function for the given action.
+
+  :param action: action to take
+  :type action: string
+  """
+  if action in ['disk']:
+    print_message = write_to_file
+
+  elif action in ['pager']:
+    print_message = write_to_pager
+  return print_message
+
 def open_file(output_dir, signatures, date):
   """Open a file descriptor.
 
@@ -86,6 +98,13 @@ def open_file(output_dir, signatures, date):
   options = get_options()
   file_name = "{0}-{1}-{2}.ids".format(signatures, date, options)
   file_path = os.path.join(output_dir, file_name)
+  path, file_name = os.path.split(file_path)
+  if os.path.isdir(path) == False:
+    try:
+      os.makedirs(path)
+
+    except IOError:
+      raise
   return open(file_path, 'wb')
 
 def open_pager(output):
@@ -114,6 +133,13 @@ def open_parsable_file(output_dir, signatures, date):
   options = get_options()
   file_name = "{0}-{1}-{2}.idats".format(signatures, date, options)
   file_path = os.path.join(output_dir, file_name)
+  path, file_name = os.path.split(file_path)
+  if os.path.isdir(path) == False:
+    try:
+      os.makedirs(path)
+
+    except IOError:
+      raise
   return open(file_path, 'wb')
 
 def write_to_file(fd, message, color=None):
@@ -127,6 +153,9 @@ def write_to_file(fd, message, color=None):
   """
   if not (isinstance(fd, io.BufferedWriter) and isinstance(message, str)):
     raise TypeError("Arguments of wrong type")
+
+  if 'colored' in dir():
+    message = colored(message,color)
 
   if not message.endswith("\n"):
     message += "\n"
@@ -152,24 +181,11 @@ def write_to_pager(pager, message, color):
 
     message += "\n"
 
-  if 'colored' in dir() and color != None:
+  if 'termcolor' in sys.modules.keys() and color != None:
     message = colored(message,color)
 
   message = bytes(message, 'utf-8')
   pager.stdin.write(message)
-
-def get_action(action):
-  """Returns the appropriate function for the given action.
-
-  :param action: action to take
-  :type action: string
-  """
-  if action in ['disk']:
-    print_message = write_to_file
-
-  elif action in ['pager']:
-    print_message = write_to_pager
-  return print_message
 
 def legenda(fd, action, count):
   """Prints a legenda to the given file descriptor.
@@ -338,7 +354,6 @@ def print_srcip(data, srcip, used):
       item = 'end_time'
 
     if item in keys:
-      print(data)
       value = data[srcip][item]
       value = format_value(item, value)
       value = header_dict[item].format(value)
@@ -355,7 +370,7 @@ def print_srcip(data, srcip, used):
   line = "".join(line)
   return line
 
-def print_dstip(data, srcip, dstip, used):
+def print_dstip(signatures, data, srcip, dstip, used):
   """Formats the data fields belonging to the destination in a nice line.
 
   :param data: data dictionary
@@ -370,6 +385,7 @@ def print_dstip(data, srcip, dstip, used):
   """
   flags = lib.flags.get_flags()
   line = []
+  color = signatures[data[srcip]['targets'][dstip]['signature']]['color']
   if flags['flows'] == False or data[srcip]['targets'][dstip]['flows'] >= flags['flows_value']:
     keys = list(data[srcip]['targets'][dstip].keys())
     if 'url' in keys:
@@ -392,7 +408,7 @@ def print_dstip(data, srcip, dstip, used):
 
       line.append(value)
   line = "".join(line)
-  return line
+  return line, color
 
 def print_parsable_dstip(data, srcip, dstip):
   """Returns a parsable data line for the destination data.
@@ -428,7 +444,7 @@ def print_parsable_dstip(data, srcip, dstip):
   line = "|".join(line)
   return line
 
-def print_data(fd, action, data, count):
+def print_data(fd, action, signatures, data, count):
   """Prints data to the given filedescriptor
 
   :param fd: filedescriptor
@@ -440,6 +456,9 @@ def print_data(fd, action, data, count):
   :param count: signature hit count dictionary
   :type count: dictionary
   """
+  if len(data) == 0:
+    return
+
   print_message = get_action(action)
   legenda(fd, action, count)
   used = header(fd, action, data)
@@ -447,8 +466,8 @@ def print_data(fd, action, data, count):
     line = print_srcip(data,srcip, used)
     print_message(fd, line, None)
     for dstip in data[srcip]['targets']:
-      line = print_dstip(data, srcip, dstip, used)
-      print_message(fd, line, None)
+      line, color = print_dstip(signatures, data, srcip, dstip, used)
+      print_message(fd, line, color)
       if 'url' in data[srcip]['targets'][dstip] and len(data[srcip]['targets'][dstip]['url']) > 0:
         urls = data[srcip]['targets'][dstip]['url']
         print_urls(fd, action, None, urls)
@@ -462,6 +481,9 @@ def print_parsable_data(fd, data):
   :param data: dictionary to print
   :type data: dictionary
   """
+  if len(data) == 0:
+    return
+
   for srcip in data:
     for dstip in data[srcip]['targets']:
       line = print_parsable_dstip(data, srcip, dstip)
