@@ -15,7 +15,6 @@ def log_setup(name, log_file, log_level):
   :type log_level: str
   :return: logger object
   """
-
   if not (isinstance(name, str) and (isinstance(log_file, str) or log_file == None) and isinstance(log_level, str)):
     raise TypeError("Arguments not all strings")
 
@@ -39,6 +38,14 @@ def log_setup(name, log_file, log_level):
 
   # Log to a file
   if not (log_file == None or (sys.platform == 'win32' and name != 'sparc-II-client')):
+    path, file_name = os.path.split(log_file)
+    if os.path.isdir(path) == False:
+      try:
+        os.makedirs(path)
+
+      except IOError:
+        logger.error("Log dir doesn't exist and cannot be made")
+        raise
     fileHandler = logging.FileHandler(log_file)
     fileHandler.setFormatter(formatter)
     logger.addHandler(fileHandler)

@@ -19,12 +19,16 @@ import lib.functions
 import lib.flags
 
 class Worker(threading.Thread):
-  def __init__(self):
+  def __init__(self, logger, flags, signatures, nfdump_files):
     threading.Thread.__init__(self)
+    self.logger = logger.getChild('worker')
     self.attack = {}
     self.counting = {}
     self.everything = {}
-    self.flags = lib.flags.get_flags()
+    self.result = {}
+    self.flags = flags
+    self.signatures = signatures
+    self.nfdump_files = nfdump_files
 
   def write_filter(self, filter):
     """Function for writing nfdump filters to file, so the stdin limit doesn't affect us.
@@ -34,6 +38,14 @@ class Worker(threading.Thread):
     :return: path to filter file
     """
     filter_file = os.path.abspath("tmp/nfdump-filter.ids")
+    path, file_name = os.path.split(filter_file)
+    if os.path.isdir(path) == False:
+      try:
+        os.makedirs(path)
+
+      except IOError:
+        self.logger.error("Temp dir doesn't exist and cannot be made")
+        raise
     filter = bytes(filter, 'utf-8')
     with open(filter_file, 'wb') as f:
       f.write(filter)
@@ -94,10 +106,18 @@ class Worker(threading.Thread):
     """
     # Split the line and throw it in a bunch of variables
     try:
-      data = str(line, 'utf-8').split("|")
+      data = str(line, 'utf-8')
+      if "PANIC!" in data:
+        return ip
+
+      data = data.split("|")
 
     except ValueError:
       raise
+
+    if len(data) < 15:
+      self.logger.error(data)
+      raise SystemExit("Something strange")
 
     ip_version = data[0]
     src = data[9]
@@ -108,7 +128,7 @@ class Worker(threading.Thread):
         ip.append((src,dst,dpt))
     return ip
 
-  def preselect_file(self, nfdump_file, signatures):
+  def preselect_file(self, nfdump_files, signatures):
     """Preselects ips from the nfcapd file
 
     :param nfdump_file: path to the nfdump/nfcapd file
@@ -118,13 +138,18 @@ class Worker(threading.Thread):
     :return: list of preselected ip tuples
     """
     ip = []
+    nfdump_notation = lib.functions.nfdump_file_notation(nfdump_files)
 
     # Generate a filter
     filter = self.preselect_filter(signatures)
     if self.flags['break_value'] == 'pfilter':
+      self.logger.debug(filter)
       raise SystemExit("Break at preselect filter")
 
-    command = "nfdump -qN -r {0} -f {1} -o pipe".format(nfdump_file, filter)
+    command = "nfdump -qN {0} -f {1} -o pipe".format(nfdump_notation, filter)
+    if self.flags['break_value'] == 'preselect':
+      self.logger.debug(command)
+
     process = subprocess.Popen(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=1)
 
     # While the line is not empty continue reading
@@ -147,26 +172,26 @@ class Worker(threading.Thread):
       srcip = lib.functions.convert_ipaddress(ip[0])
       dstip = lib.functions.convert_ipaddress(ip[1])
       dstport = ip[2]
-      filter = "src ip {0} and dst ip {1}".format(srcip, dstip)
-      if dstport in filter_dictionary.keys():
-        if not filter in filter_dictionary[dstport]:
-          filter_dictionary[dstport].append(filter)
+      filter = "src ip {0} and dst ip {1} and dst port {2}".format(srcip, dstip, dstport)
+      filter_list.append(filter)
 
-      else:
-        filter_dictionary[dstport] = [filter]
+      #if dstport in filter_dictionary.keys():
+        #if not filter in filter_dictionary[dstport]:
+          #filter_dictionary[dstport].append(filter)
 
-    for port in filter_dictionary:
-      filter = ") or (".join(filter_dictionary[port])
-      filter = "({0}) and dst port {1}".format(filter, port)
-      if not filter in filter_list:
-        filter_list.append(filter)
+      #else:
+        #filter_dictionary[dstport] = [filter]
+
+    #for port in filter_dictionary:
+      #filter = ") or (".join(filter_dictionary[port])
+      #filter = "({0}) and dst port {1}".format(filter, port)
+      #if not filter in filter_list:
+        #filter_list.append(filter)
 
     filter = ") or (".join(filter_list)
     filter = "({0})".format(filter)
     filter_path = self.write_filter(filter)
     ports = list(filter_dictionary.keys())
-    if self.flags['break_value'] == 'dfilter':
-      raise SystemExit("Break at preselect filter")
     return filter_path, ports
 
   def data_line(self, data, ports, line):
@@ -249,24 +274,40 @@ class Worker(threading.Thread):
     """Function for reading data files
 
     """
-    filter, ports = self.data_filter(ip_list)
-    port = []
     data = {}
-    for signature in signatures:
-      port.append(int(signatures[signature]['port']))
+    counting = {}
+    attack = {}
+    everything = {}
+    filter, ports = self.data_filter(ip_list)
+    if self.flags['break_value'] == 'dfilter':
+      self.logger.debug(filter)
+      self.logger.debug(ports)
+      raise SystemExit("Break at preselect filter")
+
+    #port = []
+    #for signature in signatures:
+      #port.append(int(signatures[signature]['port']))
 
     command = "nfdump -qN -r {0} -f {1} -o pipe".format(nfdump_file, filter)
+    if self.flags['break_value'] == 'dfile':
+      self.logger.debug(command)
+
     process = subprocess.Popen(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,  bufsize=1)
 
-    for line in iter(process.stdout.readline, b''):
-        data = self.data_line(data, ports, line)
+    for i, line in enumerate(iter(process.stdout.readline, b'')):
+        #data = self.data_line(data, ports, line)
+        if i % 1000 == 0 and i != 0:
+          self.logger.info("Line {0}".format(i))
+
+        counting, attack, everything = lib.absolom.data_line(self.flags, self.signatures, counting, attack, everything, line)
     #data = process.communicate()
     process.communicate()
+    counting, attack, everything = lib.absolom.flush(self.flags, counting, attack, everything)
 
     #self.absolom.flush(self)
     #self.processed_data = self.attack
     #self.absolom.debug(self)
-    return data
+    return data, counting, attack, everything
 
   def grab_data(self, data, id):
     """Calculates things about the given data and id
@@ -432,6 +473,32 @@ class Worker(threading.Thread):
             processed_data[srcip]['targets'][dstip]['signature'] = signature
     return processed_data
 
+  def data_merger(self,src_dict, dst_dict):
+    """Function to merge data from a source dictionary to a destination dictionary.
+
+    :param src_dict: source dictionary
+    :type src_dict: dictionary
+    :param dst_dict: destination dictionary
+    :type dst_dict: dictionary
+    :return: dst_dict
+    """
+    for srcip in src_dict:
+      if srcip in dst_dict:
+        for dstip in src_dict[srcip]['targets']:
+          if dstip in dst_dict:
+            dst_dict = lib.absolom.merge_move_target(src_dict, dst_dict, srcip, dstip)
+
+          else:
+            dst_dict[srcip]['targets'][dstip] = src_dict[srcip]['targets'][dstip]
+            dst_dict[srcip]['start_time'] = min([src_dict[srcip]['start_time'], dst_dict[srcip]['start_time']])
+            dst_dict[srcip]['end_time'] = max([src_dict[srcip]['end_time'], dst_dict[srcip]['end_time']])
+            dst_dict[srcip]['total_duration'] = dst_dict[srcip]['end_time'] - dst_dict[srcip]['start_time']
+
+      else:
+        dst_dict[srcip] = src_dict[srcip]
+
+    return dst_dict
+
   def time_statistics(self, begin_time, preselect_time, data_gathering_time):
     time_statistics = {
       'total_duration':             time.time() - begin_time,
@@ -445,21 +512,34 @@ class Worker(threading.Thread):
 
     """
     begin_time = time.time()
-    ip_list = []
     data = {}
-    for nfdump_file in self.nfdump_files:
+    counting = {}
+    attack = {}
+    everything = {}
 
-      # Preselection
-      ip_list.extend(self.preselect_file(nfdump_file, self.signatures))
-      preselect_time = time.time()
-      if self.flags['break_value'] == 'preselect':
-        raise SystemExit('Break at preselect')
+    # Preselection
+    ip_list = self.preselect_file(self.nfdump_files, self.signatures)
+    preselect_time = time.time()
+    if self.flags['break_value'] == 'preselect':
+      self.logger.debug(ip_list)
+      raise SystemExit('Break at preselect')
 
-      new_data = self.data_file(nfdump_file, self.signatures, ip_list)
-      print(new_data)
-      # TODO: make a data merger
+    num_files = len(self.nfdump_files)
+    for i, nfdump_file in enumerate(self.nfdump_files):
+      if i%10 == 0:
+        self.logger.info("File {0}/{1}".format(i+1, num_files))
+
+      new_data, new_counting, new_attack, new_everything = self.data_file(nfdump_file, self.signatures, ip_list)
+      data = self.data_merger(new_data, data)
+      counting = self.data_merger(new_counting, counting)
+      attack = self.data_merger(new_attack, attack)
+      everything = self.data_merger(new_everything, everything)
       data_gathering_time = time.time()
       if self.flags['break_value'] == 'dfile':
+        self.logger.debug("DATA: {0}".format(data))
+        self.logger.debug("COUNTING: {0}".format(counting))
+        self.logger.debug("ATTACK: {0}".format(attack))
+        self.logger.debug("EVERYTHING: {0}".format(everything))
         raise SystemExit("Break at data file")
 
       #if self.ids.flags['absolom'] == False:
@@ -474,9 +554,9 @@ class Worker(threading.Thread):
       #if self.ids.flags['break_value'] == 'descriminator':
         #sys.exit()
 
-      time_statistics = self.time_statistics(begin_time, preselect_time, data_gathering_time)
-      self.logger.info(time_statistics)
-    # TODO: set return data
+    everything = lib.absolom.flush_everything(attack, everything)
+    time_statistics = self.time_statistics(begin_time, preselect_time, data_gathering_time)
+    self.result = (data, counting, attack, everything)
 
   def get_result(self):
     """Returns the result.

@@ -18,9 +18,11 @@ def mod_accept(flags, counting, pkts, bts, srcip, dstip):
   :type counting: dictionary
   """
   times = 1
+  x = pkts
+  y = bts
   if srcip in counting:
     if dstip in counting[srcip]['targets']:
-      packet_mean = int(round(self.counting[srcip]['targets'][dstip]['packet_mean'],0))
+      packet_mean = int(round(counting[srcip]['targets'][dstip]['packet_mean'],0))
       if x%packet_mean == 0:
         times = int(round(x/packet_mean,0))
 
@@ -59,16 +61,16 @@ def descriminator(flags, signatures, counting, srcip, dstip, pkts, bts, port, tc
 
   x,y = mod_accept(flags, counting, pkts, bts, srcip, dstip)
   return_signature = 'reset'
-  signatures = list(sorted(signatures.keys()))
+  signatures_list = list(sorted(signatures.keys()))
 
   # Make sure everything is checked last
-  if "everything" in signatures:
-    signatures.remove("everything")
-    signatures.append("everything")
+  if "everything" in signatures_list:
+    signatures_list.remove("everything")
+    signatures_list.append("everything")
 
-  for signature in signatures:
+  for signature in signatures_list:
     if port == int(signatures[signature]['port']):
-      if lib.functions.check_accept(flags, signatures, signature, pkts, bts) == True:
+      if lib.functions.check_accept(flags, signatures, signature, x, y) == True:
          if flags['tcp_flags'] == False or int(signatures[signature]['flags']) == 0 or int(signatures[signature]['flags']) == int(tcp_flags):
             return_signature = signature
             break
@@ -90,11 +92,11 @@ def merge_move_target(src_dict, dst_dict, srcip, dstip):
   """
   for key in src_dict[srcip]['targets'][dstip]:
     if key == "first_seen":
-      dst_dict[srcip]['start_time'] = min([src_dict['start_time'], dst_dict['start_time']])
+      dst_dict[srcip]['start_time'] = min([src_dict[srcip]['start_time'], dst_dict[srcip]['start_time']])
       dst_dict[srcip]['targets'][dstip][key] = min([src_dict[srcip]['targets'][dstip][key], dst_dict[srcip]['targets'][dstip][key]])
 
     elif key == "last_seen":
-      dst_dict[srcip]['end_time'] = max([src_dict['end_time'], dst_dict['end_time']])
+      dst_dict[srcip]['end_time'] = max([src_dict[srcip]['end_time'], dst_dict[srcip]['end_time']])
       dst_dict[srcip]['targets'][dstip][key] = max([src_dict[srcip]['targets'][dstip][key], dst_dict[srcip]['targets'][dstip][key]])
 
     elif key in ['packet_mean', 'bytes_mean']:
@@ -104,12 +106,12 @@ def merge_move_target(src_dict, dst_dict, srcip, dstip):
       dst_dict[srcip]['targets'][dstip][key] += src_dict[srcip]['targets'][dstip][key]
 
     elif key in ['signature', 'url']:
-      item = src_dict[srcip]['targets'][dstip][key]
-      if item in dst_dict[srcip]['targets'][dstip][key]:
-        dst_dict[srcip]['targets'][dstip][key][item] += src_dict[srcip]['targets'][dstip][key][item]
+      for item in src_dict[srcip]['targets'][dstip][key]:
+        if item in dst_dict[srcip]['targets'][dstip][key]:
+          dst_dict[srcip]['targets'][dstip][key][item] += src_dict[srcip]['targets'][dstip][key][item]
 
-    else:
-      dst_dict[srcip]['targets'][dstip][key][item] = src_dict[srcip]['targets'][dstip][key][item]
+        else:
+          dst_dict[srcip]['targets'][dstip][key][item] = src_dict[srcip]['targets'][dstip][key][item]
   return dst_dict
 
 def del_from_dict(dictionary, srcip, dstip):
@@ -124,7 +126,7 @@ def del_from_dict(dictionary, srcip, dstip):
   :return: dictionary
   """
   if len(dictionary[srcip]['targets']) <= 1:
-    del dictioanry[srcip]
+    del dictionary[srcip]
 
   else:
     del dictionary[srcip]['targets'][dstip]
@@ -162,9 +164,10 @@ def add_counting(counting, srcip, dstip, first, first_msec, last, last_msec, sig
   first_seen = int("{0}{1}".format(first,first_msec.zfill(3)))
   last_seen = int("{0}{1}".format(last,last_msec.zfill(3)))
   src_dict = {
-    'start_time':         first_seen,
-    'end_time':           last_seen,
     srcip: {
+      'start_time':         first_seen,
+      'end_time':           last_seen,
+      'total_duration':     last_seen - first_seen,
       'targets':{
         dstip:{
           'packet_mean':  int(no_pkts),
@@ -219,7 +222,14 @@ def add_attack(flags, counting, attack, everything, srcip, dstip):
         attack[srcip]['end_time'] = max([counting[srcip]['end_time'], attack[srcip]['end_time']])
 
     else:
-      attack[srcip] = counting[srcip].copy()
+      attack[srcip] = {
+        'start_time':    counting[srcip]['start_time'],
+        'end_time':      counting[srcip]['end_time'],
+        'total_duration':counting[srcip]['total_duration'],
+        'targets':{
+          dstip: counting[srcip]['targets'][dstip]
+        },
+      }
 
   else:
     #counting[srcip]['targets'][dstip]['signature'] = {'everything': 1}
@@ -277,12 +287,18 @@ def add_everything(flags, counting, attack, everything, srcip, dstip, first, fir
       counting, attack, everything = add_attack(flags, counting, attack, everything, srcip,dstip)
       return (counting, attack, everything)
 
+  if srcip in attack:
+    if dstip in attack[srcip]['targets']:
+      return (counting, attack, everything)
+
   first_seen = int("{0}{1}".format(first,first_msec.zfill(3)))
   last_seen = int("{0}{1}".format(last,last_msec.zfill(3)))
   src_dict = {
-    'start_time':         first_seen,
-    'end_time':           last_seen,
+
     srcip: {
+      'start_time':         first_seen,
+      'end_time':           last_seen,
+      'total_duration':     last_seen - first_seen,
       'targets':{
         dstip:{
           'packet_mean':  int(no_pkts),
@@ -308,8 +324,26 @@ def add_everything(flags, counting, attack, everything, srcip, dstip, first, fir
 
   else:
     everything[srcip] = src_dict[srcip].copy()
-
   return (counting, attack, everything)
+
+def flush_everything(attack, everything):
+  for srcip in everything.copy():
+    if srcip in attack:
+      for dstip in everything[srcip]['targets'].copy():
+        if dstip in attack[srcip]['targets']:
+          everything = del_from_dict(everything, srcip, dstip)
+  return everything
+
+def merge_everything(attack, everything):
+  for srcip in everything:
+    if srcip in attack:
+      for dstip in everything[srcip]['targets']:
+        if not dstip in attack[srcip]['targets']:
+          attack[srcip]['targets'][dstip] = everything[srcip]['targets'][dstip]
+
+    else:
+      attack[srcip] = everything[srcip]
+  return attack
 
 def flush(flags, counting, attack, everything):
   """Flushes all the remaining traffic in the counting dictionary
@@ -323,10 +357,11 @@ def flush(flags, counting, attack, everything):
   :param everything: everything dictionary
   :type everything: dictionary
   """
+
   while len(counting) > 0:
-    for srcip in counting:
-      for dstip in counting[srcip]['targets']:
-        add_attack(flags, counting, attack, everything, srcip, dstip)
+    srcip = list(counting.keys())[0]
+    dstip = list(counting[srcip]['targets'].keys())[0]
+    counting, attack, everything = add_attack(flags, counting, attack, everything, srcip, dstip)
   return (counting, attack, everything)
 
 def data_line(flags, signatures, counting, attack, everything, line):
@@ -347,7 +382,11 @@ def data_line(flags, signatures, counting, attack, everything, line):
   """
   try:
     line = line.replace(b'\xff',bytes('','utf-8')).replace(b'\xfe',bytes('','utf-8'))
-    data = str(line, 'utf-8').replace("\n","").split("|")
+    data = str(line, 'utf-8').replace("\n","")
+    if "PANIC!" in data:
+      return (counting, attack, everything)
+
+    data = data.split("|")
 
   except ValueError as e:
     raise
@@ -377,7 +416,7 @@ def data_line(flags, signatures, counting, attack, everything, line):
   # Grab a signature
   srcip = lib.functions.convert_ipaddress(sa_3)
   dstip = "{0}:{1}".format(lib.functions.convert_ipaddress(da_3),dst_port)
-  signature, no_pkts, no_octets = self.absolom.descriminator(flags, signatures, counting, srcip, dstip, float(no_pkts), float(no_octets), int(dst_port), int(tcp_flags))
+  signature, no_pkts, no_octets = descriminator(flags, signatures, counting, srcip, dstip, float(no_pkts), float(no_octets), int(dst_port), int(tcp_flags))
 
   # Based on the signature and flags perform any of these actions
   # TCP flag filter: 26: .AP.S., 27: .AP.SF
@@ -389,7 +428,7 @@ def data_line(flags, signatures, counting, attack, everything, line):
     counting, attack, everything = add_everything(flags, counting, attack, everything, srcip, dstip, first, first_msec, last, last_msec, signature, host, page, no_pkts, no_octets)
 
   else:
-    counting, attack, everything = add_everything(self,srcip, dstip, first, first_msec, last, last_msec, 'everything', host, page, no_pkts, no_octets)
+    counting, attack, everything = add_everything(flags, counting, attack , everything, srcip, dstip, first, first_msec, last, last_msec, 'everything', host, page, no_pkts, no_octets)
 
   return (counting, attack, everything)
 
@@ -418,6 +457,11 @@ def match_signature(data, srcip, dstip):
 
   return signature
 
+def match_everything(data):
+  for srcip in data:
+    for dstip in data[srcip]['targets']:
+      data[srcip]['targets'][dstip]['signature'] = 'everything'
+  return data
 #====================================
 
 #def add_srcip(self, srcdict, dstdict, srcip, root_keys):

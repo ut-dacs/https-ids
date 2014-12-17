@@ -4,6 +4,7 @@
 
 import statistics
 import math
+import os
 
 def convert_ipaddress(ipint):
   """Function for converting a 32 bit integer to a human readable ip address
@@ -87,3 +88,19 @@ def check_accept(flags, signatures, signature, x, y):
         (x >= float(signatures[signature]['packets_low']) and x <= float(signatures[signature]['packets_high'])):
       accepted = True
     return accepted
+
+def nfdump_file_notation(nfdump_files):
+  nfdump_files = sorted(nfdump_files)
+  if len(nfdump_files) > 1:
+    begin = nfdump_files[0]
+    end = nfdump_files[-1]
+
+    begin = os.path.split(begin)
+    basedir = begin[0]
+    begin = begin[1]
+    end = os.path.split(end)[1]
+    nfdump_notation = "-R {0}/{1}:{2}".format(basedir, begin, end)
+
+  else:
+    nfdump_notation = "-r {0}".format(nfdump_files[0])
+  return nfdump_notation
