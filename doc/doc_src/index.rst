@@ -1,25 +1,26 @@
-.. https-ids documentation master file, created by
-   sphinx-quickstart on Mon Dec  8 20:00:12 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to https-ids's documentation!
 =====================================
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :glob:
+   :maxdepth: 4
 
-   lib-config
-   lib-flags
-   lib-printer
+   main
+   lib/*
 
-.. include lib-config.rst
-.. include lib-flags.rst
-.. include lib-printer.rst
+.. include main.rst
 
-
+.. include lib/absolom.rst
+.. include lib/config.rst
+.. include lib/flags.rst
+.. include lib/functions.rst
+.. include lib/ids.rst
+.. include lib/logsetup.rst
+.. include lib/printer.rst
+.. include lib/signature.rst
+.. include lib/worker.rst
 
 Indices and tables
 ==================
@@ -27,4 +28,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

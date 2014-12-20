@@ -22,9 +22,16 @@ import os
 sys.path.insert(0, os.path.abspath('../../'))
 os.chdir(os.path.abspath('../../'))
 
+import main
+import lib.absolom
 import lib.config
 import lib.flags
+import lib.functions
+import lib.ids
+import lib.logsetup
 import lib.printer
+import lib.signature
+import lib.worker
 
 # -- General configuration ------------------------------------------------
 
