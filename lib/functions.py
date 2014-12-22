@@ -25,6 +25,15 @@ def convert_ipaddress(ipint):
   ip = ip.strip(".")
   return ip
 
+def filter(line):
+  """Function to filter bytes from a given line.
+
+  :param line: a given string
+  :type line: bytes
+  """
+  line = line.replace(b'\xff',bytes('','utf-8')).replace(b'\xfe',bytes('','utf-8'))
+  return line
+
 def data_statistics(data):
   """Calculates mean and stdev for the given data.
 

@@ -106,6 +106,7 @@ class Worker(threading.Thread):
     """
     # Split the line and throw it in a bunch of variables
     try:
+      line = lib.functions.filter(line)
       data = str(line, 'utf-8')
       if "PANIC!" in data:
         return ip
@@ -204,6 +205,7 @@ class Worker(threading.Thread):
     :return: data dictionary
     """
     try:
+      line = lib.functions.filter(line)
       data = str(line, 'utf-8').replace("\n","").split("|")
 
     except ValueError as e:

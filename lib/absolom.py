@@ -381,7 +381,7 @@ def data_line(flags, signatures, counting, attack, everything, line):
   :return: counting, attack, everything
   """
   try:
-    line = line.replace(b'\xff',bytes('','utf-8')).replace(b'\xfe',bytes('','utf-8'))
+    line = lib.functions.filter(line)
     data = str(line, 'utf-8').replace("\n","")
     if "PANIC!" in data:
       return (counting, attack, everything)
