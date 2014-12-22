@@ -55,6 +55,10 @@ class Worker(threading.Thread):
       for item in distances:
         if distances[item] == min_value:
           match.append(item)
+      if self.flags['break_value'] == 'matching':
+        self.logger.debug("Distances: {0}".format(distances))
+        self.logger.debug("Matches: {0}".format(match))
+
       if len(match) > 0:
         signature = match[0]
 
@@ -73,11 +77,11 @@ class Worker(threading.Thread):
           signature = self.match_signature(self.data, self.signatures, srcip, dstip)
           signature_absolom = lib.absolom.match_signature(self.data, srcip, dstip)
           if self.flags['break'] and self.flags['break_value'] == 'matching':
-            self.logger.debug((signature, signature_absolom))
+            self.logger.debug("Py: {0}, abs: {1}".format(signature, signature_absolom))
 
           if signature != signature_absolom and signature != None:
             self.logger.error("Signature does not match with Absolom signature!\n{0} -- {1}".format(signature, signature_absolom))
-            #signature = signature_absolom
+            signature = signature_absolom
           self.data[srcip]['targets'][dstip]['signature'] = signature
           if signature != None:
             if not srcip in filtered_data:

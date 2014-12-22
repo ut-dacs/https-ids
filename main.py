@@ -68,7 +68,7 @@ def main():
     everything = lib.absolom.match_everything(everything)
 
   if flags['break'] and flags['break_value'] == 'matching':
-    logger.debug(attack)
+    #logger.debug(attack)
     raise SystemExit("Break at matching")
 
   # Counting phase

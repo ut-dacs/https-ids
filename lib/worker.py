@@ -296,8 +296,8 @@ class Worker(threading.Thread):
 
     for i, line in enumerate(iter(process.stdout.readline, b'')):
         #data = self.data_line(data, ports, line)
-        if i % 1000 == 0 and i != 0:
-          self.logger.info("Line {0}".format(i))
+        if i % 10000 == 0 and i != 0:
+          self.logger.debug("Line {0}".format(i))
 
         counting, attack, everything = lib.absolom.data_line(self.flags, self.signatures, counting, attack, everything, line)
     #data = process.communicate()
