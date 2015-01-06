@@ -20,11 +20,11 @@ import traceback
 sys.path.append(os.path.abspath(os.path.join(sys.path[0],'../')))
 
 # Custom libs
-from lib.config import config
+import lib.config
+import lib.printer
+import lib.flags
 from lib.validator import Validator
 from lib.ids import IDS
-from lib.printer import Printer
-from lib.flags import *
 
 class Validation():
 
@@ -39,7 +39,7 @@ class Validation():
     f = open("conf/logging.conf", 'rb')
     D = yaml.load(f)
     D.setdefault('version', 1)
-    if flags['debug'] == True:
+    if lib.flags.get_flags()['debug'] == True:
 
       D['handlers']['console']['level'] = 'DEBUG'
       D['handlers']['file']['level'] = 'DEBUG'
@@ -71,10 +71,10 @@ class Validation():
   # Might be usefull later
   def __init__(self):
 
-      self.flags = flags
-      self.flags['output_value'] = 'pager'
+      self.flags = lib.flags.get_flags()
+      self.flags['output_value'] = 'none'
       self.flags['sig'] = True
-      self.flags['sig_value'] = '5,7'
+      self.flags['sig_value'] = '1,5,7'
       self.flags['violate'] = True
       logging.debug(self.flags)
 
@@ -230,24 +230,22 @@ class Validation():
       self.tnr = 0
     self.acc = (self.count['tp'] + self.count['tn'])/(self.count['tp'] + self.count['tn'] + self.count['fp'] + self.count['fn'])
 
-  def save_data(self):
+  def save_data(self, signature, date, type_scan, cusum):
 
     logging.info("Saving data...")
-    file = sys.argv[1]
-    date = re.search(".*([0-9]{4}-[0-9]{2}-[0-9]{2}).*",file).group(1)
-    #date = str(str(datetime.datetime.fromtimestamp(time.time())).split(" ")[0])
-    cusum = self.flags['cusum_value']
-    filename = "results/{0}-{1}".format(date,cusum)
-    if self.flags['automate'] == True:
+    signature = "_".join(signature)
+    type_scan = "-".join(type_scan)
+    filename = "results/{0}-{1}-{2}-{3}.txt".format(signature, date, type_scan, cusum)
+    #if self.flags['automate'] == True:
 
-      filename = "{0}-{1}".format(filename, self.flags['automate_value'])
-    if self.flags['packets'] == True:
+      #filename = "{0}-{1}".format(filename, self.flags['automate_value'])
+    #if self.flags['packets'] == True:
 
-      filename = "{0}-ppf".format(filename)
-    if self.flags['bytes'] == True:
+      #filename = "{0}-ppf".format(filename)
+    #if self.flags['bytes'] == True:
 
-      filename = "{0}-bpf".format(filename)
-    filename = "{0}.txt".format(filename)
+      #filename = "{0}-bpf".format(filename)
+    #filename = "{0}.txt".format(filename)
     with open(filename, 'wb') as results_file:
 
       # Actually lets write it to a file
@@ -272,31 +270,28 @@ class Validation():
     with open(filename, 'wb') as results_dump:
       pickle.dump(self.data, results_dump)
     logging.info("TP: {0}, TN: {1}, FP: {2}, FN: {3}, TOT: {4}".format(self.count['tp'], self.count['tn'], self.count['fp'], self.count['fn'], self.count['total']))
+    logging.info("TPr: {0}, TNr: {1}, FPr: {2}, FNr: {3}, ACC: {4}".format(self.tpr, self.tnr, self.fpr, self.fnr, self.acc))
 
   # Shows the counters and if needed it kicks the IDS to show the data
   def show_results(self):
 
     # Lets not invent the wheel twice, just call the IDS to display stuff
-    self.ids = IDS()
-    self.ids.logger = logging.getLogger('IDS')
+    self.ids = IDS(logging.getLogger('ids'), self.flags, lib.config.read_config('ids'))
+    #self.ids.logger = logging.getLogger('IDS')
     self.ids.extended = True
     self.ids.flags = self.flags
     self.ids.threads = self.threads
-    self.ids.load_signature()
+    self.ids.load_signatures()
 
     # Create a printing object
-    self.printer = Printer()
-    self.printer.logger = logging.getLogger('Printer')
-    self.printer.ids = self.ids
-
-    if self.flags['automate'] == False:
-
-      answer = input("Show what data?\n")
-      if not answer == "":
-
-        self.ids.data = self.data[answer]
-        self.ids.process_sort()
-        self.printer.print_results()
+    if 'pager' in self.flags['output_value']:
+      with lib.printer.open_pager(sys.stdout) as pager:
+        #answer = input("Show what data?\n")
+        answer = 'tp'
+        if not answer == "":
+          lib.printer.print_data(pager, 'pager', self.ids.signatures, self.data[answer], {})
+    logging.info("TP: {0}, TN: {1}, FP: {2}, FN: {3}, TOT: {4}".format(self.count['tp'], self.count['tn'], self.count['fp'], self.count['fn'], self.count['total']))
+    logging.info("TPr: {0}, TNr: {1}, FPr: {2}, FNr: {3}, ACC: {4}".format(self.tpr, self.tnr, self.fpr, self.fnr, self.acc))
 
 def main():
 
@@ -306,11 +301,17 @@ def main():
 
     data_bytes = f.readlines()
 
-  signature = re.match('.*/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-',file.replace('fa-v2','fa_v2').replace('xmlrpc-v2','xmlrpc_v2'))
-  if signature:
+  "ba_everything_fa_xmlrpc-2014-12-25-ppf-5.idats"
+  #signature = re.match('.*/([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-',file.replace('fa-v2','fa_v2').replace('xmlrpc-v2','xmlrpc_v2'))
+  file_name = re.match('.*/(.*?)-([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-([0-9]{1,2}).idats', file)
+  if file_name:
+    signature = file_name.group(1).split('_')
+    date = file_name.group(2)
+    type_scan = file_name.group(3).split('-')
+    cusum = file_name.group(4)
 
-    signature = signature.group(2).replace('fa_v2','fa-v2').replace('xmlrpc_v2','xmlrpc-v2').split('_')
-    signature.remove('everything')
+  else:
+    raise SystemExit("File name not understood")
 
   # Create the validator
   validator = Validation()
@@ -319,8 +320,8 @@ def main():
   validator.processor(data_bytes)
   validator.calculate_rates()
   #validator.missing()
-  validator.save_data()
-  validator.show_results()
+  validator.save_data(signature, date, type_scan, cusum)
+  #validator.show_results()
 
 if __name__ == "__main__":
 

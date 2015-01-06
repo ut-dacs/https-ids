@@ -11,13 +11,15 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(sys.path[0],'../')))
 
 # Custom libs
-from lib.ids import IDS
-from lib.printer import Printer
-from lib.flags import *
+import lib.config
+import lib.ids
+import lib.printer
+import lib.flags
 
+flags = lib.flags.get_flags()
 flags['output_value'] = 'pager'
 flags['sig'] = True
-flags['sig_value'] = '5,7'
+flags['sig_value'] = '1,3,5,7'
 flags['violate'] = True
 
 def load_dump():
@@ -42,21 +44,15 @@ def main():
     sys.exit()
 
   data = load_dump()
-  ids = IDS()
-  ids.logger = logging.getLogger('IDS')
+  ids = lib.ids.IDS(logging.getLogger('IDS'), flags, lib.config.read_config('ids'))
   ids.extended = True
   ids.flags = flags
-  ids.load_signature()
+  ids.load_signatures()
   ids.data = data[sys.argv[2]]
 
-  # Create a printing object
-  printer = Printer()
-  printer.logger = logging.getLogger('Printer')
-  printer.ids = ids
-
-  
-  ids.process_sort()
-  printer.print_results()
+  ids.data = ids.process_sort(ids.data)
+  with lib.printer.open_pager(sys.stdout) as pager:
+    lib.printer.print_data(pager, 'pager', ids.signatures, ids.data, {})
 
 if __name__ == "__main__":
 

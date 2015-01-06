@@ -31,71 +31,60 @@ data_files = {}
 
 # Go over all of the folders in root
 for path, subdirs, files in os.walk(data_folder):
-
   for name in files:
-
     name_edit = name.replace("fa-v2", "fa_v2").replace("xmlrpc-v2","xmlrpc_v2")
-    item = re.search("([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-([0-9]+)-(.*)\.(.*)",name_edit)
+    item = re.match('(.*?)-([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-([0-9]{1,2}).idats', name_edit)
     if item:
-
-      date = item.group(1)
-      signature = item.group(2).replace("fa_v2","fa-v2").replace("xmlrpc_v2","xmlrpc-v2")
-      cusum_value = int(item.group(3))
-      descriminator = item.group(4)
-
+      signature = item.group(1).replace("fa_v2","fa-v2").replace("xmlrpc_v2","xmlrpc-v2")
+      date = item.group(2)
+      descriminator = item.group(3)
+      cusum_value = int(item.group(4))
       date = datetime.datetime.strptime(date, '%Y-%m-%d')
       date = time.mktime(date.timetuple())
       if date == date_report and date in data_files:
-
         if descriminator in data_files[date]:
-
           data_files[date][descriminator][cusum_value] = (os.path.join(path, name),signature)
+
         else:
-
           data_files[date][descriminator] = {cusum_value: (os.path.join(path, name),signature)}
-      else:
 
+      else:
         data_files[date] = {descriminator: {cusum_value: (os.path.join(path, name),signature)}}
 
 for date in sorted(data_files.keys()):
-
   print("{0}:".format(date))
   for descriminator in sorted(data_files[date].keys()):
-
     print("\t{0}:".format(descriminator))
     for cusum_value in sorted(data_files[date][descriminator].keys()):
-
       print("\t\t{0}".format(cusum_value))
+
     print()
+
   print()
 
 if os.path.isfile('/opt/bin/python3/bin/python3'):
-
   python = '/opt/bin/python3/bin/python3'
+
 else:
-
   python = 'python3'
+
 for descriminator in descriminator_types:
-
   if descriminator == 'ppf':
-
     operator = 'packets'
+
   elif descriminator == 'bpf':
-
     operator = 'bytes'
-  elif descriminator == 'ppf-bpf':
 
+  elif descriminator == 'ppf-bpf':
     operator = 'packets --bytes'
 
   for cusum_value in data_files[date_report][descriminator]:
-
     command = "{0} ./scripts/validate.py {1} --automate {2} --cusum {3} --{4}".format(python, data_files[date_report][descriminator][cusum_value][0], data_files[date_report][descriminator][cusum_value][1], cusum_value, operator)
     print(command)
-    process = subprocess.Popen(command, shell=True)
-    process.wait()
+    #process = subprocess.Popen(command, shell=True)
+    #process.wait()
 
 def header(descriminator):
-
   header_list = []
   header_list.append("Cusum value")
   for cusum_value in sorted(result_files[descriminator].keys()):
@@ -109,32 +98,26 @@ def header(descriminator):
 
 result_files = {}
 for path, subdirs, files in os.walk('results/'):
-
   for name in files:
-
     if '.txt' in name:
-
       name_edit = name.replace("fa-v2", "fa_v2").replace("xmlrpc-v2","xmlrpc_v2")
-      item = re.search("([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]+?)-.*?-(.*)\.(.*)",name_edit)
+      #item = re.search("([0-9]{4}-[0-9]{2}-[0-9]{2})-([0-9]+?)-.*?-(.*)\.(.*)",name_edit)
+      item = re.search('(.*?)-([0-9]{4}-[0-9]{2}-[0-9]{2})-(.*?)-([0-9]{1,2}).txt', name_edit)
       if item:
-
-        date_result = item.group(1)
+        date_result = item.group(2)
         date_result = datetime.datetime.strptime(date_result, '%Y-%m-%d')
         date_result = time.mktime(date_result.timetuple())
-        print((date_result,date))
         if date_result == date_report:
-
-          cusum_value = int(item.group(2))
+          cusum_value = int(item.group(4))
           descriminator = item.group(3)
           if descriminator in result_files:
-
             result_files[descriminator][cusum_value] = os.path.join(path, name)
-          else:
 
+          else:
             result_files[descriminator] = {cusum_value: os.path.join(path, name)}
+
 latex_data = {}
 for descriminator in sorted(result_files.keys()):
-
   filename = "results/report-{0}-{1}.txt".format(sys.argv[2],descriminator)
   tp = []
   fp = []
@@ -146,12 +129,10 @@ for descriminator in sorted(result_files.keys()):
   fnr = []
   rates = []
   for cusum_value in sorted(result_files[descriminator].keys()):
-
     with open(result_files[descriminator][cusum_value], 'rb') as data_file:
-
       data = data_file.readlines()
-    for i,line in enumerate(data):
 
+    for i,line in enumerate(data):
       line = str(line, 'utf-8')
       value = re.search(".*\ (.*)$", line)
 
