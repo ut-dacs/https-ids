@@ -267,7 +267,9 @@ latex = [ "\\begin{tabular}{c | >{\\centering\\arraybackslash}m{1.8cm} | c | c |
                                                              latex_data[37]['ppf-bpf']['fpr'],latex_data[37]['ppf-bpf']['fnr'],
                                                              latex_data[37]['ppf-bpf']['acc']),
           "\\end{tabular}",]
-with open(re.sub("/.*\.","/latex.",filename), 'wb') as latex_file:
+filename = re.sub("^(.*?/).*?-([0-9]{4}-[0-9]{2}-[0-9]{2}).*?\.","\\1latex-\\2.",filename)
+with open(filename, 'wb') as latex_file:
 
   latex_contents = bytes("\n".join(latex),'utf-8')
   latex_file.write(latex_contents)
+  print("Done")

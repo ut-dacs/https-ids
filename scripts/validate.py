@@ -110,16 +110,12 @@ class Validation():
   def data_merger(self,data):
 
     for item in self.data.keys():
-
       for srcip in data[item]:
-
         if srcip in self.data[item].keys():
-
           for dstip in data[item][srcip]['targets']:
-
             self.data[item][srcip]['targets'].update(data[item][srcip]['targets'])
-        else:
 
+        else:
           self.data[item].update(data[item])
 
   def result_counter(self, data):
@@ -139,25 +135,27 @@ class Validation():
     def worker(q, data):
 
       # Create the Validator and give it what it needs
-      thread = Validator()
+      thread = Validator(q)
       thread.logger = logging.getLogger('Validator')
-      thread.orig_data = data
+      thread.orig_data = data.copy()
       thread.parent = self
-      thread.attackers = self.attackers
-      thread.attackers_ba = self.attackers_ba
+      thread.attackers = self.attackers.copy()
+      thread.attackers_ba = self.attackers_ba.copy()
 
       # Lets start the Validator
       thread.start()
-      q.put(thread, True)
+      #q.put(thread, True)
 
     def getter(q, num):
 
       for i in range(num):
 
-        thread = q.get(True)
-        thread.join()
+        start = time.time()
+        #thread = q.get(True)
+        #thread.join()
+        #result = thread.get_result()
 
-        result = thread.get_result()
+        result = q.get(True)
 
         # Every 1000 items print where we are
         logging.info("Progress records: {0}/{1}".format(i+1, num))
