@@ -62,11 +62,11 @@ for date in sorted(data_files.keys()):
 
   print()
 
-if os.path.isfile('/opt/bin/python3/bin/python3'):
-  python = '/opt/bin/python3/bin/python3'
+if os.path.isfile('/opt/bin/python3/bin/python3.4'):
+  python = '/opt/bin/python3/bin/python3.4'
 
 else:
-  python = 'python3'
+  python = 'python3.4'
 
 for descriminator in descriminator_types:
   if descriminator == 'ppf':
