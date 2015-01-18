@@ -5,7 +5,26 @@
 """ "Do you have a flag …?'
 'What? We don't need a flag, this is our home, you bastards'
 'No flag, No Country, You can't have one!
-Those are the rules... that I just made up!...and I'm backing it up with this gun.' --Eddie Izzard"""
+Those are the rules... that I just made up!...and I'm backing it up with this gun.' --Eddie Izzard
+
+These flags are available:
+
+:break:             Break the script at a certain point. (Requires an argument)
+:bytes:              Descriminate on bytes (BPF)
+:cusum:              Cusum streak value for the Absolom algorithm
+:debug:              Enable debug output
+:flows:              Set a minimum flow count. (Requires an argument) (DEPRECATED)
+:help:               Shows this help
+:ip:                 Only look at one ip. (Requires an argument)
+:packets:            Descriminate on packets (PPF)
+:output:             Sets the output method (pipe, pager, disk, none), Default: pipe
+:sig:                Selects a signature
+:tcp_flags:          Treats a TCP RST flags as a reset
+:threads:            By default it uses all available cores, here you can specify otherwise
+:time:               Shows time statistics in the end (BROKEN)
+:test:               Test mode, skips certain questions/code
+:url:                Set a threshold for urls to be shown
+"""
 
 import sys
 
@@ -15,26 +34,17 @@ def get_default():
   :return: a dictionary of flags
   """
   flags = {
-    'absolom':            False,
-    'automate':           False,
-    'automate_value':     '',
     'break':              False,
     'break_value':        'flags',
     'bytes':              False,
     'cusum':              False,
     'cusum_value':        5,
     'debug':              False,
-    'duration':           False,
     'flows':              False,
     'flows_value':        2,
     'help':               False,
     'ip':                 False,
     'ip_value':           '0.0.0.0',
-    'kick':               False,
-    'kill_output':        False,
-    'merge':              False,
-    'pmod':               False,
-    'nmod':               False,
     'packets':            False,
     'output':             False,
     'output_value':       'pipe',
@@ -44,7 +54,7 @@ def get_default():
     'threads':            False,
     'threads_value':      1,
     'time':               False,
-    'verbose':            False,
+    'test':               False,
     'violate':            False,
     'url':                False,
     'url_value':          0,
@@ -55,35 +65,56 @@ def show_help():
   """Function for showing usage/help output
   """
   flags = get_default()
-  help = {'absolom':            'Enables the absolute detection algorithm',
-          'break':              'Break the script at a certain point. (Requires an argument)',
-          'bytes':              'Descriminate on bytes',
+  help = {'break':              'Break the script at a certain point. (Requires an argument)',
+          'bytes':              'Descriminate on bytes (BPF)',
           'cusum':              'Cusum streak value for the Absolom algorithm',
           'debug':              'Enable debug output',
-          'duration':           'Descriminate on duration too.',
-          'flows':              'Set a minimum flow count. (Requires an argument)',
+          'flows':              'Set a minimum flow count. (Requires an argument) (DEPRECATED)',
           'help':               'Shows this help.',
           'ip':                 'Only look at one ip. (Requires an argument)',
-          'kill_output':        'Show no output during the processing, debug output is not affected by this option (DEPRECATED)',
-          'packets':            'Descriminate on packets',
+          'packets':            'Descriminate on packets (PPF)',
           'output':             'Sets the output method (pipe, pager, disk, none), Default: pipe',
           'sig':                'Selects a signature.',
           'tcp_flags':          'Treats a TCP RST flags as a reset',
           'threads':            'By default it uses all available cores, here you can specify otherwise',
-          'time':               'Shows time statistics in the end',
-          'verbose':            'A more verbose debug',
+          'time':               'Shows time statistics in the end (BROKEN)',
+          'test':               'Test mode, skips certain questions/code',
           'url':                'Set a threshold for urls to be shown'
           }
 
-  print("Usage {0} <nfdump-file> [options]".format(sys.argv[0]))
+  if "main" in sys.argv[0]:
+    type_file = "<nfdump-files>"
+
+  elif "validate" in sys.argv[0]:
+    type_file = "<results-file>"
+  print("Usage {0} {1} [options]".format(sys.argv[0], type_file))
+  if "main" in sys.argv[0]:
+    print()
+    print("<nfdump-files> can point to a single file. Or it can be used to select a range of files within a directory,\n\
+the syntax is for this is: <path-to-directory>:<lower-boundary>:<upper-boundary>")
+    print("For example 'flows/:201407150910:201407150945' selects all the files in 'flows' that fall between '201407150910' and '201407150945'.")
+
   print()
   print("Optional flags:")
   for item in sorted(flags.keys()):
-    if item in help.keys():
-        line = "--{0}".format(item)
-        line = "{:<20}".format(line)
-        line = "{0}{1}".format(line, help[item])
-        print(line)
+    if item in ['threads', 'test'] and "main" in sys.argv[0]:
+      pass
+
+    elif item in ['bytes', 'cusum', 'flow', 'ip', 'packets', 'output', 'sig', 'tcp_flags', 'time', 'url'] and 'validate' in sys.argv[0]:
+      pass
+
+    elif item in help.keys():
+      line = "--{0}".format(item)
+      line = "{:<20}".format(line)
+      line = "{0}{1}".format(line, help[item])
+      print(line)
+      if item == 'break':
+        if 'main' in sys.argv[0]:
+          print("{:<22}".format("")+"possible breakpoints include: init, signatures, files, processing, matching, counting")
+
+        elif 'validate' in sys.argv[0]:
+          print("{:<22}".format("")+"possible breakpoints include: init, processing, calculating")
+
 
   print()
   raise SystemExit()
