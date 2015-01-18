@@ -1,250 +1,228 @@
 #!/usr/bin/env python3.4
 # Author:       Olivier van der Toorn <o.i.vandertoorn@student.utwente.nl>
-# Description:  Worker class for validate.py
+# Description:  Validation class definition
 
-import threading
+import math
+import multiprocessing
+import os
+import pickle
 import queue
-import traceback
-import re
-import sys
+import threading
+import time
 
-class Validator(threading.Thread):
+import lib.validator_worker
 
-  def __init__(self):
+class Validator():
+  """Class used for validation purposes.
+  """
 
-    threading.Thread.__init__(self)
-    self.data = {'all': {},
-                 'tp':  {},
-                 'tn':  {},
-                 'fp':  {},
-                 'fn':  {}
-                 }
-    self.count = {'tp': 0,
-                  'fp': 0,
-                  'tn': 0,
-                  'fn': 0,
-                  'total': 0,
-                  }
+  # Base variables
+  count = { 'tp':0,
+            'tn':0,
+            'fp':0,
+            'fn':0,
+            'total':0}
+  data = {'all': {},
+          'tp':  {},
+          'tn':  {},
+          'fp':  {},
+          'fn':  {},
+          }
 
-  def grab_data(self, line):
+  def __init__(self, logger, flags, config, signature):
+      self.flags = flags
+      self.flags['output_value'] = 'none'
+      self.flags['sig'] = True
+      self.flags['sig_value'] = '1,5,7'
+      self.flags['violate'] = True
+      self.logger = logger.getChild('validator')
+      self.config = config
+      self.signature = signature
 
-    if self.parent.flags['absolom'] == True:
+  def no_dump(self, attack):
+    if self.flags['test'] == False:
+      answer = input("The {0} attackers dump was not found, read the manual on how to\
+ create this dump. \n The validation process can continue, but the results are likely\
+ to be incorrect.\n Would you like to continue? (y/n)\n".format(attack))
+      if answer.lower() != 'y':
+        raise SystemExit
+    return []
 
-      data ={ 'packet_mean':             float(line[3]),
-              'bytes_mean':              float(line[4]),
-              'flows':                   int(line[5]),
-              'cusum':                   float(line[6]),
-              'first_seen':              float(line[7]),
-              'last_seen':               float(line[8]),
-              'signature':               line[9],
-              'url':                     {},
-            }
+  def filter_attackers(self, attackers, cusum):
+    """Filters the attackers list for a given cusum (flow record threshold).
 
-    # Mean algorithm stuff
-    else:
+    :param attackers: attackers list
+    :type attackers: list
+    :param cusum: the minimum cusum rate (flow record threshold)
+    :type cusum: int
+    :return: a filtered attackers list
+    """
+    filtered_list = []
+    for attacker in attackers:
+      srcip = attacker[0]
+      dstip = attacker[1]
+      count = attacker[2]
+      if int(count) >= cusum and (srcip,dstip) not in filtered_list:
+        filtered_list.append((srcip,dstip))
+    return filtered_list
 
-      data ={   'packet_mean':             float(line[3]),
-                'packet_stdev':            float(line[4]),
-                'bytes_mean':              float(line[5]),
-                'bytes_stdev':             float(line[6]),
-                'duration_mean':           float(line[7]),
-                'duration_stdev':          float(line[8]),
-                'flows':                   int(line[9]),
-                'activity':                float(line[11]),
-                'flow_duration':           float(line[10]),
-                'total_duration':          float(line[12]),
-                'first_seen':              float(line[13]),
-                'last_seen':               float(line[14]),
-                'signature':               line[15],
-                'url':                     {},
-              }
-    return data
+  def load_attackers(self, cusum):
+    """Function for loading the attacker lists. These lists should be in the 'includes' folder, named as 'attackers_fa.dump'
+    and 'attackers_ba.dump'.
 
-  def split_url(self, url):
+    :param cusum: the minimum cusum rate (flow record threshold)
+    :type cusum: int
+    """
+    try:
+      with open('includes/attackers_fa.dump', 'rb') as attackers:
+        attackers = pickle.load(attackers)
 
-    url = re.match(r"(.*)\\([0-9]+)$",url)
-    count = int(url.group(2))
-    url = url.group(1)
-    return (count, url)
+      self.attackers_fa = self.filter_attackers(attackers, cusum)
 
-  # Parse the data for later analysis
-  def parse_data(self, line, urls, id):
-
-    srcip = line[0]
-    dstip = "{0}:{1}".format(line[1],line[2])
-    data = self.grab_data(line)
-
-    # All
-    if srcip in self.data['all'].keys():
-
-      if dstip in self.data['all'][srcip]['targets']:
-
-        self.logger.error("I should not be here, ALL")
-      else:
-
-        self.data['all'][srcip]['targets'][dstip] = data
-
-    else:
-
-      self.data['all'][srcip] = {  'start_time':        0,
-                                   'end_time':          0,
-                                   'total_duration':    0,
-                                   'targets':           {dstip: data},
-                                  }
-
-    # ID
-    if srcip in self.data[id].keys():
-
-      if dstip in self.data[id][srcip]['targets']:
-
-        self.logger.error("I should not be here {0}\n{1}\n{2}".format(id,data,self.data[id][srcip]['targets'][dstip]))
-      else:
-
-        self.data[id][srcip]['targets'][dstip] = data
-
-    else:
-
-      self.data[id][srcip] = {  'start_time':        0,
-                                   'end_time':          0,
-                                   'total_duration':    0,
-                                   'targets':           {dstip: data},
-                                  }
-
-    # Urls
-    for url in urls:
-
-      if url != "":
-
-        count, url = self.split_url(url)
-        if not url in self.data['all'][srcip]['targets'][dstip]['url'].keys():
-
-          self.data['all'][srcip]['targets'][dstip]['url'][url] = count
-
-        if not url in self.data[id][srcip]['targets'][dstip]['url'].keys():
-
-          self.data[id][srcip]['targets'][dstip]['url'][url] = count
-
-  # See if the url contains a login page
-  def match(self,url):
-
-    accept = False
-    if 'fa' in self.parent.sig:
-
-      try:
-
-        url_match = re.match(r"(.*)({0})(\\)(.*)".format(self.parent.fa_pages),url)
-      except:
-
-        self.logger.exception("Bummer")
-    elif 'ba' in self.parent.sig:
-
-      self.parent.ba_pages = self.parent.ba_pages.replace("(","\(")
-      try:
-
-        url_match = re.match(r"(.*)({0})(\\)(.*)".format(self.parent.ba_pages),url)
-      except:
-
-        self.logger.error(pages)
-
-    if url_match:
-
-      accept = True
-    return accept
-
-  def ba(self, signature, srcip, dstip):
-
-    attack = False
-    if (srcip,dstip) in self.attackers_ba:
-
-      attack = True
-    if attack == True and signature in self.parent.sig:
-
-      result = 'tp'
-
-    elif attack == False and signature in self.parent.sig:
-
-      result = 'fp'
-    elif attack == True and not signature in self.parent.sig:
-
-      result = 'fn'
-
-    elif attack == False and not signature in self.parent.sig:
-
-      result = 'tn'
-    return result
-
-  def fa(self, signature, srcip, dstip):
-
-    attack = False
-    if (srcip, dstip) in self.attackers:
-
-      attack = True
-    if attack == True and signature in self.parent.sig:
-
-      result = 'tp'
-
-    elif attack == False and signature in self.parent.sig:
-
-      result = 'fp'
-    elif attack == True and not signature in self.parent.sig:
-
-      result = 'fn'
-
-    elif attack == False and not signature in self.parent.sig:
-
-      result = 'tn'
-    return result
-
-  # Determines what the line is (tp, tn, fn, fp)
-  def stats(self,line):
+    except FileNotFoundError:
+      self.attackers_fa = self.no_dump("FA")
 
     try:
+      with open('includes/attackers_ba.dump', 'rb') as attackers:
+        attackers = pickle.load(attackers)
 
-      line = str(line, 'utf-8').split("|")
-      if len(line) == 11:
+      self.attackers_ba = self.filter_attackers(attackers, cusum)
 
-        self.parent.flags['absolom'] = True
-        self.new = 1
+    except FileNotFoundError:
+      self.attackers_ba = self.no_dump("BA")
+    self.logger.debug("BA-attackers: {0}, FA-attackers: {1}".format(len(self.attackers_ba),len(self.attackers_fa)))
 
-      # Grab the urls
-      if self.parent.flags['absolom'] == True and self.new == 1:
+  def data_merger(self,data):
+    """Merges data into self.data.
 
-        urls = line[10]
-        signature = line[9]
+    :param data: a data dictionary to be merged into self.data
+    :type data: dictionary
+    """
+    for item in self.data.keys():
+      for srcip in data[item]:
+        if srcip in self.data[item].keys():
+          for dstip in data[item][srcip]['targets']:
+            self.data[item][srcip]['targets'].update(data[item][srcip]['targets'])
+
+        else:
+          self.data[item].update(data[item])
+
+  def result_counter(self, data):
+    """Keeps a count of the TP, TN, FP and FN statistics.
+
+    :param data: a tuple of a count dictionary and a data dictionary
+    :type data: tuple
+    """
+    count, data = data
+    for item in count:
+      self.count[item] += count[item]
+
+    # Parsing data for later use is too
+    self.data_merger(data)
+
+  def processor(self, data):
+    """The actual validation process, i.e. grab a worker and tell him to do it.
+
+    :param data: data to be processed
+    :type data: dictionary
+    """
+    def worker(q, data):
+      # Create the Validator and give it what it needs
+      thread = lib.validator_worker.Worker(q, self.logger, self.signature, data.copy(), self.flags, self.attackers_fa.copy(), self.attackers_ba.copy())
+      thread.start()
+
+    def getter(q, num):
+      for i in range(num):
+        start = time.time()
+        result = q.get(True)
+
+        # Every 1000 items print where we are
+        self.logger.info("Progress records: {0}/{1}".format(i+1, num))
+        self.result_counter(result)
+
+    # Parallel processing!
+    threads = int(multiprocessing.cpu_count())
+    if threads < 1:
+      threads = 1
+
+    self.threads = threads
+    q = queue.Queue()
+    step = math.ceil(len(data)/threads)
+    for num,i in enumerate(range(0,len(data),step)):
+      if i+step <= len(data):
+        data_tmp = data[i:i+step]
 
       else:
+        data_tmp = data[i:len(data)]
+      threading._start_new_thread(worker, ((q,data_tmp)))
+      self.logger.debug("Thread {0} started".format(num))
+    getter(q, num+1)
 
-        urls = line[16]
-        signature = line[15]
+  def calculate_rates(self):
+    """Calculates the TPR, TNR, FPR and FNR rates.
+    """
+    if (self.count['tp'] + self.count['fn']) != 0:
+      self.tpr = self.count['tp']/(self.count['tp'] + self.count['fn'])
+      self.fnr = self.count['fn']/(self.count['tp'] + self.count['fn'])
 
-      # One line per url
-      urls = re.sub(r"\.nlhttp",".nl/http",urls)
-      urls = re.sub(r"(\\)([0-9]+)([\\\n])",r"\\\2\n",urls).split("\n")
+    else:
+      self.tpr = 0
+      self.fnr = 0
 
-      srcip = line[0]
-      dstip = line[1].replace(":*","")
+    if (self.count['tn'] + self.count['fp']) != 0:
+      self.fpr = self.count['fp']/(self.count['tn'] + self.count['fp'])
+      self.tnr = self.count['tn']/(self.count['tn'] + self.count['fp'])
 
-      if 'ba' in self.parent.sig:
+    else:
+      self.fpr = 0
+      self.tnr = 0
 
-        result = self.ba(signature, srcip, dstip)
-      if 'fa-v2' in self.parent.sig or 'xmlrpc' in self.parent.sig or 'xmlrpc-v2' in self.parent.sig:
+    self.acc = (self.count['tp'] + self.count['tn'])/(self.count['tp'] + self.count['tn'] + self.count['fp'] + self.count['fn'])
 
-        result = self.fa(signature, srcip, dstip)
-      self.parse_data(line, urls, result)
-      self.count[result] += 1
-      self.count['total'] += 1
-    except:
+  def print_rates(self):
+    """Prints the rates to the logger.
+    """
+    self.logger.info("TP: {0}, TN: {1}, FP: {2}, FN: {3}, TOT: {4}".format(self.count['tp'], self.count['tn'], self.count['fp'], self.count['fn'], self.count['total']))
+    self.logger.info("TPr: {0}, TNr: {1}, FPr: {2}, FNr: {3}, ACC: {4}".format(self.tpr, self.tnr, self.fpr, self.fnr, self.acc))
 
-      self.logger.exception("Marvin was humming ironically because he hated humans so much.")
+  def save_data(self, signature, date, type_scan, cusum):
+    """This function saves two files, one containing the rates. The other is a categorized dump of the data. This dump can be viewed with the 'results_viewer' in the 'scripts' folder.
 
-  def run(self):
+    :param signature: a list of used signatures in the scan
+    :type signature: list
+    :param date: a date string of when the scan was performed
+    :type data: string
+    :param type_scan: ppf, bpf or ppf+bpf
+    :type type_scan: list
+    :param cusum: the cusum rate (flow record threshold
+    :type cusum: string
+    """
+    self.logger.info("Saving data...")
+    signature = "_".join(signature)
+    type_scan = "-".join(type_scan)
+    filename = "results/{0}-{1}-{2}-{3}.txt".format(signature, date, type_scan, cusum)
+    if not 'results' in os.listdir():
+      os.mkdir('results')
 
-    # Go through all the lines and see what they are
-    for line in self.orig_data:
+    with open(filename, 'wb') as results_file:
+      def write_file(message):
+        results_file.write(bytes(message+"\n", 'utf-8'))
 
-      self.stats(line)
+      write_file("RESULTS:")
+      write_file("TP: {0}".format(self.count['tp']))
+      write_file("FP: {0}".format(self.count['fp']))
+      write_file("TN: {0}".format(self.count['tn']))
+      write_file("FN: {0}".format(self.count['fn']))
+      write_file("TOT: {0}".format(self.count['total']))
+      write_file("")
+      write_file("TPr: {0}".format(self.tpr))
+      write_file("TNr: {0}".format(self.tnr))
+      write_file("FPr: {0}".format(self.fpr))
+      write_file("FNr: {0}".format(self.fnr))
+      write_file("Acc: {0}".format(self.acc))
+      write_file("")
+      write_file("{0} {1} {2} {3} {4}".format(self.tpr, self.tnr, self.fpr, self.fnr, self.acc))
 
-  def get_result(self):
-
-   self.result = (self.count, self.data)
-   return self.result
+    filename = filename.replace(".txt",".dump")
+    with open(filename, 'wb') as results_dump:
+      pickle.dump(self.data, results_dump)
