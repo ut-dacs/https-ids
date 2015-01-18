@@ -14,7 +14,7 @@ try:
   from termcolor import colored
 
 except ImportError:
-  print("Import failed")
+  print("Termcolor import failed")
   pass
 
 import lib.flags
