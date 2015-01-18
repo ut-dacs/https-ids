@@ -113,3 +113,27 @@ def nfdump_file_notation(nfdump_files):
   else:
     nfdump_notation = "-r {0}".format(nfdump_files[0])
   return nfdump_notation
+
+def time_statistics(*time):
+  diff = []
+  percentages = []
+  total_time = time[-1] - time[0]
+  for i, item in enumerate(time):
+    if i > 0:
+      diff_time = item - time[i-1]
+      diff.append(diff_time)
+
+      percent = (diff_time / total_time)*100
+      percentages.append(percent)
+
+  total = "Total run time: {0} seconds.".format(total_time)
+  percentage = ""
+  for i, item in enumerate(percentages):
+    if percentage == "":
+      percentage = "{0:.3f}% of the time was in phase {{{1}}}".format(item, i)
+
+    else:
+      percentage = "{0}, {1:.3f}% of the time was in {{{2}}} phase".format(percentage, item, i)
+
+  line = "\n".join([total, percentage])
+  return line

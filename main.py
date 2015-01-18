@@ -1,6 +1,16 @@
 #!/usr/bin/env python3.4
 # Author:       Olivier van der Toorn <o.i.vandertoorn@student.utwente.nl>
-# Description:  A very simple IDS, it checks flow records agains a given signature
+"""A rather simple IDS, it checks flow records against a given signature.
+If a cusum rate, or flow record threshols, is exceeded it is marked as an attack.
+
+Usage: ./main.py <path-to-result-file> [options]
+
+The [options] are as defined by the flags library (lib.flags).
+Configuration of this IDS is in 'conf/ids.conf'.
+#Signature definitions are in 'conf/signature.conf'.
+"""
+
+# TODO: github documentation
 
 import logging
 import logging.config
@@ -12,14 +22,15 @@ import datetime
 # Custom lib
 import lib.config
 import lib.flags
+import lib.functions
 import lib.logsetup
 import lib.ids
 import lib.printer
 import lib.signature
 
-# This is where the magic happens
 def main():
   # Init phase
+  begin_time = time.time()
   path = sys.argv[1]
   flags = lib.flags.get_flags()
   config = lib.config.read_config('ids')
@@ -30,6 +41,7 @@ def main():
   logger.info("Starting Intrusion Detection System")
   logger.debug("Init phase")
   ids = lib.ids.IDS(logger, flags, config)
+  init_time = time.time()
   if flags['break'] and flags['break_value'] == 'init':
     logger.debug(config)
     logger.debug(flags)
@@ -40,6 +52,7 @@ def main():
   ids.load_signatures()
   #ids.filter_signatures(['1','5'])
   #ids.coordinates_signatures()
+  signature_time = time.time()
   if flags['break'] and flags['break_value'] == 'signatures':
     logger.debug(ids.signatures)
     logger.debug(ids.coordinates)
@@ -48,6 +61,7 @@ def main():
   # Files phase
   logger.debug("Files phase")
   nfdump_files = ids.process_filenames(path)
+  files_time = time.time()
   if flags['break'] and flags['break_value'] == 'files':
     logger.debug(nfdump_files)
     raise SystemExit("Break at files")
@@ -55,6 +69,7 @@ def main():
   # File processing phase
   logger.debug("File processing phase")
   data, counting, attack, everything = ids.process_files(nfdump_files)
+  processing_time = time.time()
   if flags['break'] and flags['break_value'] == 'processing':
     logger.debug(attack)
     raise SystemExit("Break at processing")
@@ -67,6 +82,7 @@ def main():
   if len(everything) > 0:
     everything = lib.absolom.match_everything(everything)
 
+  matching_time = time.time()
   if flags['break'] and flags['break_value'] == 'matching':
     #logger.debug(attack)
     raise SystemExit("Break at matching")
@@ -80,6 +96,7 @@ def main():
   if 'everything' in ids.signatures and len(everything) > 0:
     sig_count = ids.process_count(sig_count, everything)
 
+  counting_time = time.time()
   if flags['break'] and flags['break_value'] == 'counting':
     logger.debug(sig_count)
     raise SystemExit("Break at counting")
@@ -89,6 +106,17 @@ def main():
   attack = ids.process_sort(attack)
   if 'everything' in ids.signatures:
     everything = ids.process_sort(everything)
+
+  sorting_time = time.time()
+  if flags['break'] and flags['break_value'] == 'sorting':
+    logger.debug(sig_count)
+    raise SystemExit("Break at sorting")
+
+  if flags['time'] == True:
+    line = lib.functions.time_statistics(begin_time, init_time, signature_time, files_time,
+                                  processing_time, matching_time, sorting_time)
+    line = line.format('init', 'signature', 'files', 'processing', 'matching', 'sorting')
+    logger.info(line)
 
   # Printing phase
   logger.debug("Printing/saving phase")

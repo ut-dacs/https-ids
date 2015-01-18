@@ -77,7 +77,7 @@ def show_help():
           'sig':                'Selects a signature.',
           'tcp_flags':          'Treats a TCP RST flags as a reset',
           'threads':            'By default it uses all available cores, here you can specify otherwise',
-          'time':               'Shows time statistics in the end (BROKEN)',
+          'time':               'Shows time statistics in the end',
           'test':               'Test mode, skips certain questions/code',
           'url':                'Set a threshold for urls to be shown'
           }
