@@ -9,6 +9,7 @@ Contents:
 
    main
    lib/*
+   scripts/*
 
 .. include main.rst
 
@@ -20,7 +21,10 @@ Contents:
 .. include lib/logsetup.rst
 .. include lib/printer.rst
 .. include lib/signature.rst
+.. include lib/validator.rst
+.. include lib/validator_worker.rst
 .. include lib/worker.rst
+.. include scripts/validate.rst
 
 Indices and tables
 ==================

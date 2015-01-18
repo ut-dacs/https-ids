@@ -31,7 +31,10 @@ import lib.ids
 import lib.logsetup
 import lib.printer
 import lib.signature
+import lib.validator
+import lib.validator_worker
 import lib.worker
+import scripts.validate
 
 # -- General configuration ------------------------------------------------
 
