@@ -5,7 +5,6 @@ Using the same data-set a series of cusum and descriminator types can be configu
 The configuration for this automation script is in 'conf/automation.conf'.
 
 """
-
 import os
 import subprocess
 import sys
@@ -15,39 +14,43 @@ import lib.flags
 import lib.config
 import lib.functions
 
-if len(sys.argv) < 1:
-  sys.exit()
+def main():
+  if len(sys.argv) < 1:
+    lib.flags.show_help()
 
-files = sys.argv[1]
-flags = lib.flags.get_flags()
-config = lib.config.read_config('automation')
-signatures = lib.config.read_signatures()
-signatures = lib.functions.automation_signatures(signatures, config['signatures'])
-descriminator_types = config['descriminator'].split(",")
-cusum = config['cusum'].split(",")
+  files = sys.argv[1]
+  flags = lib.flags.get_flags()
+  config = lib.config.read_config('automation')
+  signatures = lib.config.read_signatures()
+  signatures = lib.functions.automation_signatures(signatures, config['signatures'])
+  descriminator_types = config['descriminator'].split(",")
+  cusum = config['cusum'].split(",")
 
-if os.path.isfile('/opt/bin/python3/bin/python3'):
-  python = '/opt/bin/python3/bin/python3'
+  if os.path.isfile('/opt/bin/python3/bin/python3'):
+    python = '/opt/bin/python3/bin/python3'
 
-else:
-  python = 'python3'
+  else:
+    python = 'python3'
 
-for descriminator in descriminator_types:
-  if descriminator == 'ppf':
-    operator = 'packets'
+  for descriminator in descriminator_types:
+    if descriminator == 'ppf':
+      operator = 'packets'
 
-  elif descriminator == 'bpf':
-    operator = 'bytes'
+    elif descriminator == 'bpf':
+      operator = 'bytes'
 
-  elif descriminator == 'ppf+bpf':
-    operator = 'packets --bytes'
+    elif descriminator == 'ppf+bpf':
+      operator = 'packets --bytes'
 
-  for cusum_value in cusum:
+    for cusum_value in cusum:
 
-    command = "{0} ./main.py {1} --time --sig {2} --cusum {3} --{4}".format(python, files, signatures, cusum_value, operator)
-    if flags['test'] == False:
-      process = subprocess.Popen(command, shell=True)
-      process.wait()
+      command = "{0} ./main.py {1} --time --sig {2} --cusum {3} --{4}".format(python, files, signatures, cusum_value, operator)
+      if flags['test'] == False:
+        process = subprocess.Popen(command, shell=True)
+        process.wait()
 
-    else:
-      print(command)
+      else:
+        print(command)
+
+if __name__ == "__main__":
+  main()
