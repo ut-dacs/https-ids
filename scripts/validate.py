@@ -32,16 +32,15 @@ import lib.logsetup
 import lib.printer
 import lib.validator
 
-
-if len(sys.argv) < 2:
-  lib.flags.show_help()
-
-# Add support for starting in the scripts directory
-if not 'conf' in os.listdir() and 'conf'in os.listdir('../'):
-  sys.argv[1] = os.path.abspath(sys.argv[1])
-  os.chdir('../')
-
 def main():
+  if len(sys.argv) < 2:
+    lib.flags.show_help()
+
+  # Add support for starting in the scripts directory
+  if not 'conf' in os.listdir() and 'conf'in os.listdir('../'):
+    sys.argv[1] = os.path.abspath(sys.argv[1])
+    os.chdir('../')
+
   results_file = sys.argv[1]
   flags = lib.flags.get_flags()
   config = lib.config.read_config('validate')
