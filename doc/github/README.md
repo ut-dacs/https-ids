@@ -1,917 +1,852 @@
+### Navigation
 
-====
-main
-====
+-   [https-ids 0.8 documentation](index.html#document-index) »
 
-A rather simple IDS, it checks flow records against a given signature.
-If a cusum rate, or flow record threshols, is exceeded it is marked as
-an attack.
+Welcome to https-ids’s documentation![¶](#welcome-to-https-ids-s-documentation "Permalink to this headline")
+============================================================================================================
 
-Usage: ./main.py <path-to-result-file> [options]
+Contents:
 
-The [options] are as defined by the flags library (lib.flags).
-Configuration of this IDS is in 'conf/ids.conf'. #Signature
-definitions are in 'conf/signature.conf'.
+main[¶](#module-main "Permalink to this headline")
+--------------------------------------------------
 
-===========
-lib/absolom
-===========
+A rather simple IDS, it checks flow records against a given signature. If a cusum rate, or flow record threshols, is exceeded it is marked as an attack.
+
+Usage: ./main.py \<path-to-result-file\> [options]
+
+The [options] are as defined by the flags library (lib.flags). Configuration of this IDS is in ‘conf/ids.conf’. \#Signature definitions are in ‘conf/signature.conf’.
+
+lib/absolom[¶](#lib-absolom "Permalink to this headline")
+---------------------------------------------------------
 
 Yes, this library is named after the Alice in Wonderland character.
 
-lib.absolom.add_attack(flags, counting, attack, everything, srcip, dstip)
+ `lib.absolom.``add_attack`(*flags*, *counting*, *attack*, *everything*, *srcip*, *dstip*)[¶](#lib.absolom.add_attack "Permalink to this definition")  
+Function to move an entry from the counting dictionary to the attack dictionary.
 
-   Function to move an entry from the counting dictionary to the
-   attack dictionary.
+Parameters:
 
-   Parameters:
-      * **flags** (*dictionary*) -- flag dictionary
+-   **flags** (*dictionary*) – flag dictionary
+-   **counting** (*dictionary*) – counting dictionary
+-   **attack** (*dictionary*) – attack dictionary
+-   **everything** (*dictionary*) – everything dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
 
-      * **counting** (*dictionary*) -- counting dictionary
+Returns:
 
-      * **attack** (*dictionary*) -- attack dictionary
+tuple of changed dictionaries (counting, attack, everything)
 
-      * **everything** (*dictionary*) -- everything dictionary
+ `lib.absolom.``add_counting`(*counting*, *srcip*, *dstip*, *first*, *first\_msec*, *last*, *last\_msec*, *signature*, *host*, *page*, *no\_pkts*, *no\_octets*)[¶](#lib.absolom.add_counting "Permalink to this definition")  
+Function to add an entry to the counting dictionary.
 
-      * **srcip** (*string*) -- source ip
+Parameters:
 
-      * **dstip** (*string*) -- destination ip
+-   **counting** (*dictionary*) – counting dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
+-   **first** (*int*) – first seen time
+-   **first\_msec** (*int*) – first seen time
+-   **last** (*int*) – last seen time
+-   **last\_msec** (*int*) – last seen time
+-   **signature** (*string*) – given signature
+-   **host** (*string*) – host visited
+-   **page** (*string*) – page visited
+-   **no\_pkts** (*int*) – number of packets
+-   **no\_octets** (*int*) – number of bytes
 
-   Returns:
-      tuple of changed dictionaries (counting, attack, everything)
+Returns:
 
-lib.absolom.add_counting(counting, srcip, dstip, first, first_msec, last, last_msec, signature, host, page, no_pkts, no_octets)
+counting dictionary
 
-   Function to add an entry to the counting dictionary.
+ `lib.absolom.``add_everything`(*flags*, *counting*, *attack*, *everything*, *srcip*, *dstip*, *first*, *first\_msec*, *last*, *last\_msec*, *signature*, *host*, *page*, *no\_pkts*, *no\_octets*)[¶](#lib.absolom.add_everything "Permalink to this definition")  
+Adds an entry to the everything dictionary.
 
-   Parameters:
-      * **counting** (*dictionary*) -- counting dictionary
+Parameters:
 
-      * **srcip** (*string*) -- source ip
+-   **flags** (*dictionary*) – flag dictionary
+-   **counting** (*dictionary*) – counting dictionary
+-   **attack** (*dictionary*) – attack dictionary
+-   **everything** (*dictionary*) – everything dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
+-   **first** (*int*) – first seen time
+-   **first\_msec** (*int*) – first seen time
+-   **last** (*int*) – last seen time
+-   **last\_msec** (*int*) – last seen time
+-   **signature** (*string*) – given signature
+-   **host** (*string*) – host visited
+-   **page** (*string*) – page visited
+-   **no\_pkts** (*int*) – number of packets
+-   **no\_octets** (*int*) – number of bytes
 
-      * **dstip** (*string*) -- destination ip
+Returns:
 
-      * **first** (*int*) -- first seen time
+tuple of (counting, attack, everything)
 
-      * **first_msec** (*int*) -- first seen time
+ `lib.absolom.``data_line`(*flags*, *signatures*, *counting*, *attack*, *everything*, *line*)[¶](#lib.absolom.data_line "Permalink to this definition")  
+Processes a data line
 
-      * **last** (*int*) -- last seen time
+Parameters:
 
-      * **last_msec** (*int*) -- last seen time
+-   **flags** (*dictionary*) – flag dictionary
+-   **signatures** (*dictionary*) – signatures dictionary
+-   **counting** (*dictionary*) – counting dictionary
+-   **attack** (*dictionary*) – attack dictionary
+-   **everything** (*dictionary*) – everything dictionary
 
-      * **signature** (*string*) -- given signature
+Returns:
 
-      * **host** (*string*) -- host visited
+counting, attack, everything
 
-      * **page** (*string*) -- page visited
+ `lib.absolom.``del_from_dict`(*dictionary*, *srcip*, *dstip*)[¶](#lib.absolom.del_from_dict "Permalink to this definition")  
+Removes an entry from the given dictionary. Assumed is that srcip and dstip exist in the dictionary. :param dictionary: dictionary to remove an entry from :type dictionary: dictionary :param srcip: source ip :type srcip: string :param dstip: destination ip :type dstip: string :return: dictionary
 
-      * **no_pkts** (*int*) -- number of packets
+ `lib.absolom.``descriminator`(*flags*, *signatures*, *counting*, *srcip*, *dstip*, *pkts*, *bts*, *port*, *tcp\_flags*)[¶](#lib.absolom.descriminator "Permalink to this definition")  
+Descriminator function, does something... I think.
 
-      * **no_octets** (*int*) -- number of bytes
+Parameters:
 
-   Returns:
-      counting dictionary
+-   **flags** (*dictionary*) – flags dictionary
+-   **signatures** (*dictionary*) – signatures dictionary
+-   **counting** (*dictionary*) – counting dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
+-   **pkts** (*int*) – number of packets
+-   **bts** (*int*) – amount of bytes
+-   **port** (*int*) – TCP port number
 
-lib.absolom.add_everything(flags, counting, attack, everything, srcip, dstip, first, first_msec, last, last_msec, signature, host, page, no_pkts, no_octets)
+Returns:
 
-   Adds an entry to the everything dictionary.
+tuple of (signature, pkts, bts)
 
-   Parameters:
-      * **flags** (*dictionary*) -- flag dictionary
+ `lib.absolom.``flush`(*flags*, *counting*, *attack*, *everything*)[¶](#lib.absolom.flush "Permalink to this definition")  
+Flushes all the remaining traffic in the counting dictionary
 
-      * **counting** (*dictionary*) -- counting dictionary
+Parameters:
 
-      * **attack** (*dictionary*) -- attack dictionary
+-   **flags** (*dictionary*) – flag dictionary
+-   **counting** (*dictionary*) – counting dictionary
+-   **attack** (*dictionary*) – attack dictionary
+-   **everything** (*dictionary*) – everything dictionary
 
-      * **everything** (*dictionary*) -- everything dictionary
+ `lib.absolom.``match_signature`(*data*, *srcip*, *dstip*)[¶](#lib.absolom.match_signature "Permalink to this definition")  
+Check which signature was matched most of the time
 
-      * **srcip** (*string*) -- source ip
+Parameters:
 
-      * **dstip** (*string*) -- destination ip
+-   **data** (*dictionary*) – data dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
 
-      * **first** (*int*) -- first seen time
+Returns:
 
-      * **first_msec** (*int*) -- first seen time
+signature
 
-      * **last** (*int*) -- last seen time
+ `lib.absolom.``merge_move_target`(*src\_dict*, *dst\_dict*, *srcip*, *dstip*)[¶](#lib.absolom.merge_move_target "Permalink to this definition")  
+Merges an entry from source dictionary to destination dictionary. It is assumed here that both the source ip and destination ip exist in the destination dictionary.
 
-      * **last_msec** (*int*) -- last seen time
+Parameters:
 
-      * **signature** (*string*) -- given signature
+-   **src\_dict** (*dictionary*) – source dictionary
+-   **dst\_dict** (*dictionary*) – destination dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
 
-      * **host** (*string*) -- host visited
+Returns:
 
-      * **page** (*string*) -- page visited
+dst\_dict
 
-      * **no_pkts** (*int*) -- number of packets
+ `lib.absolom.``mod_accept`(*flags*, *counting*, *pkts*, *bts*, *srcip*, *dstip*)[¶](#lib.absolom.mod_accept "Permalink to this definition")  
+Modulus accept to allow a bit of variance in flows. When a flow is doubled it is still accepted.
 
-      * **no_octets** (*int*) -- number of bytes
+Parameters:
 
-   Returns:
-      tuple of (counting, attack, everything)
+-   **flags** (*dictionary*) – flags dictionary
+-   **counting** (*dictionary*) – counting dictionary
 
-lib.absolom.data_line(flags, signatures, counting, attack, everything, line)
+lib/config[¶](#module-lib.config "Permalink to this headline")
+--------------------------------------------------------------
 
-   Processes a data line
+ `lib.config.``get_all_options`(*conf\_name*, *config\_parser*)[¶](#lib.config.get_all_options "Permalink to this definition")  
+Function for translating a config parser config file to a Python dictionary
 
-   Parameters:
-      * **flags** (*dictionary*) -- flag dictionary
+Parameters:
 
-      * **signatures** (*dictionary*) -- signatures dictionary
+-   **conf\_name** (*string*) – specifies the config file name
+-   **config\_parser** (*configparser object*) – the config parser used for reading the config file
 
-      * **counting** (*dictionary*) -- counting dictionary
+Returns:
 
-      * **attack** (*dictionary*) -- attack dictionary
+dictionary of the options
 
-      * **everything** (*dictionary*) -- everything dictionary
+ `lib.config.``get_conf_file`(*conf\_name*)[¶](#lib.config.get_conf_file "Permalink to this definition")  
+Function for converting a config name to a path to the actual config file.
 
-   Returns:
-      counting, attack, everything
+Parameters:
 
-lib.absolom.del_from_dict(dictionary, srcip, dstip)
+**conf\_name** (*str*) – specifies the config name
 
-   Removes an entry from the given dictionary. Assumed is that srcip
-   and dstip exist in the dictionary. :param dictionary: dictionary to
-   remove an entry from :type dictionary: dictionary :param srcip:
-   source ip :type srcip: string :param dstip: destination ip :type
-   dstip: string :return: dictionary
+Returns:
 
-lib.absolom.descriminator(flags, signatures, counting, srcip, dstip, pkts, bts, port, tcp_flags)
+path to the file as a string
 
-   Descriminator function, does something... I think.
+ `lib.config.``get_signatures`(*config\_parser*)[¶](#lib.config.get_signatures "Permalink to this definition")  
+Lists the configured signatures
 
-   Parameters:
-      * **flags** (*dictionary*) -- flags dictionary
+Returns:
 
-      * **signatures** (*dictionary*) -- signatures dictionary
+list of signatures
 
-      * **counting** (*dictionary*) -- counting dictionary
+ `lib.config.``read_config`(*conf\_name*)[¶](#lib.config.read_config "Permalink to this definition")  
+Function for parsing config files.
 
-      * **srcip** (*string*) -- source ip
+Parameters:
 
-      * **dstip** (*string*) -- destination ip
+**conf\_name** (*str*) – specifies the config file to be read
 
-      * **pkts** (*int*) -- number of packets
+ `lib.config.``read_signatures`()[¶](#lib.config.read_signatures "Permalink to this definition")  
+Similair to read\_config, however it is specified to the signatures.
 
-      * **bts** (*int*) -- amount of bytes
+Returns:
 
-      * **port** (*int*) -- TCP port number
+dictionary of signatures with their options
 
-   Returns:
-      tuple of (signature, pkts, bts)
+lib/flags[¶](#module-lib.flags "Permalink to this headline")
+------------------------------------------------------------
 
-lib.absolom.flush(flags, counting, attack, everything)
-
-   Flushes all the remaining traffic in the counting dictionary
-
-   Parameters:
-      * **flags** (*dictionary*) -- flag dictionary
-
-      * **counting** (*dictionary*) -- counting dictionary
-
-      * **attack** (*dictionary*) -- attack dictionary
-
-      * **everything** (*dictionary*) -- everything dictionary
-
-lib.absolom.match_signature(data, srcip, dstip)
-
-   Check which signature was matched most of the time
-
-   Parameters:
-      * **data** (*dictionary*) -- data dictionary
-
-      * **srcip** (*string*) -- source ip
-
-      * **dstip** (*string*) -- destination ip
-
-   Returns:
-      signature
-
-lib.absolom.merge_move_target(src_dict, dst_dict, srcip, dstip)
-
-   Merges an entry from source dictionary to destination dictionary.
-   It is assumed here that both the source ip and destination ip exist
-   in the destination dictionary.
-
-   Parameters:
-      * **src_dict** (*dictionary*) -- source dictionary
-
-      * **dst_dict** (*dictionary*) -- destination dictionary
-
-      * **srcip** (*string*) -- source ip
-
-      * **dstip** (*string*) -- destination ip
-
-   Returns:
-      dst_dict
-
-lib.absolom.mod_accept(flags, counting, pkts, bts, srcip, dstip)
-
-   Modulus accept to allow a bit of variance in flows. When a flow is
-   doubled it is still accepted.
-
-   Parameters:
-      * **flags** (*dictionary*) -- flags dictionary
-
-      * **counting** (*dictionary*) -- counting dictionary
-
-==========
-lib/config
-==========
-
-lib.config.get_all_options(conf_name, config_parser)
-
-   Function for translating a config parser config file to a Python
-   dictionary
-
-   Parameters:
-      * **conf_name** (*string*) -- specifies the config file name
-
-      * **config_parser** (*configparser object*) -- the config
-        parser used for reading the config file
-
-   Returns:
-      dictionary of the options
-
-lib.config.get_conf_file(conf_name)
-
-   Function for converting a config name to a path to the actual
-   config file.
-
-   Parameters:
-      **conf_name** (*str*) -- specifies the config name
-
-   Returns:
-      path to the file as a string
-
-lib.config.get_signatures(config_parser)
-
-   Lists the configured signatures
-
-   Returns:
-      list of signatures
-
-lib.config.read_config(conf_name)
-
-   Function for parsing config files.
-
-   Parameters:
-      **conf_name** (*str*) -- specifies the config file to be read
-
-lib.config.read_signatures()
-
-   Similair to read_config, however it is specified to the signatures.
-
-   Returns:
-      dictionary of signatures with their options
-
-=========
-lib/flags
-=========
-
-"Do you have a flag …?' 'What? We don't need a flag, this is our home,
-you bastards' 'No flag, No Country, You can't have one! Those are the
-rules... that I just made up!...and I'm backing it up with this gun.'
---Eddie Izzard
+“Do you have a flag …?’ ‘What? We don’t need a flag, this is our home, you bastards’ ‘No flag, No Country, You can’t have one! Those are the rules... that I just made up!...and I’m backing it up with this gun.’ –Eddie Izzard
 
 These flags are available:
 
 break:
-   Break the script at a certain point. (Requires an argument)
+
+Break the script at a certain point. (Requires an argument)
 
 bytes:
-   Descriminate on bytes (BPF)
+
+Descriminate on bytes (BPF)
 
 cusum:
-   Cusum streak value for the Absolom algorithm
+
+Cusum streak value for the Absolom algorithm
 
 debug:
-   Enable debug output
+
+Enable debug output
 
 flows:
-   Set a minimum flow count. (Requires an argument) (DEPRECATED)
+
+Set a minimum flow count. (Requires an argument) (DEPRECATED)
 
 help:
-   Shows this help
+
+Shows this help
 
 ip:
-   Only look at one ip. (Requires an argument)
+
+Only look at one ip. (Requires an argument)
 
 packets:
-   Descriminate on packets (PPF)
+
+Descriminate on packets (PPF)
 
 output:
-   Sets the output method (pipe, pager, disk, none), Default: pipe
+
+Sets the output method (pipe, pager, disk, none), Default: pipe
 
 sig:
-   Selects a signature
 
-tcp_flags:
-   Treats a TCP RST flags as a reset
+Selects a signature
+
+tcp\_flags:
+
+Treats a TCP RST flags as a reset
 
 threads:
-   By default it uses all available cores, here you can specify
-   otherwise
+
+By default it uses all available cores, here you can specify otherwise
 
 time:
-   Shows time statistics in the end (BROKEN)
+
+Shows time statistics in the end (BROKEN)
 
 test:
-   Test mode, skips certain questions/code
+
+Test mode, skips certain questions/code
 
 url:
-   Set a threshold for urls to be shown
 
-lib.flags.get_default()
+Set a threshold for urls to be shown
 
-   Sets the default flags, add new flags here
+ `lib.flags.``get_default`()[¶](#lib.flags.get_default "Permalink to this definition")  
+Sets the default flags, add new flags here
 
-   Returns:
-      a dictionary of flags
+Returns:
 
-lib.flags.get_flags()
+a dictionary of flags
 
-   Function for going through the system arguments and setting options
-   in the default flags.
+ `lib.flags.``get_flags`()[¶](#lib.flags.get_flags "Permalink to this definition")  
+Function for going through the system arguments and setting options in the default flags.
 
-   Returns:
-      dictionary of flags
+Returns:
 
-lib.flags.show_help()
+dictionary of flags
 
-   Function for showing usage/help output
+ `lib.flags.``show_help`()[¶](#lib.flags.show_help "Permalink to this definition")  
+Function for showing usage/help output
 
-=============
-lib/functions
-=============
+lib/functions[¶](#module-lib.functions "Permalink to this headline")
+--------------------------------------------------------------------
 
-lib.functions.check_accept(flags, signatures, signature, x, y)
+ `lib.functions.``automation_signatures`(*signatures*, *config*)[¶](#lib.functions.automation_signatures "Permalink to this definition")  
+Function for converting configured signatures into numbers ‘main.py’ understands.
 
-   Function to check if the given x and y falls inside of the given
-   signature. :param signatures: dictionary of signatures :type
-   signatures: dictionary :param signature: selected signature :type
-   signature: string :param x: x coordinate :type x: int :param y: y
-   coordinate :type y: int :return: accepted boolean
+Parameters:
 
-lib.functions.convert_ipaddress(ipint)
+-   **signatures** (*dictionary*) – dictionary of available signatures
+-   **config** (*string*) – configured signatures
 
-   Function for converting a 32 bit integer to a human readable ip
-   address https://geekdeck.wordpress.com/2010/01/19/converting-a
-   -decimal-number-to-ip-address-in-python/
+Returns:
 
-   Parameters:
-      **ipint** (*integer*) -- 32 bit int ip address
+a string of signatures main.py understands
 
-   Returns:
-      human readable ip address
+ `lib.functions.``check_accept`(*flags*, *signatures*, *signature*, *x*, *y*)[¶](#lib.functions.check_accept "Permalink to this definition")  
+Function to check if the given x and y falls inside of the given signature. :param signatures: dictionary of signatures :type signatures: dictionary :param signature: selected signature :type signature: string :param x: x coordinate :type x: int :param y: y coordinate :type y: int :return: accepted boolean
 
-lib.functions.data_statistics(data)
+ `lib.functions.``convert_ipaddress`(*ipint*)[¶](#lib.functions.convert_ipaddress "Permalink to this definition")  
+Function for converting a 32 bit integer to a human readable ip address [https://geekdeck.wordpress.com/2010/01/19/converting-a-decimal-number-to-ip-address-in-python/](https://geekdeck.wordpress.com/2010/01/19/converting-a-decimal-number-to-ip-address-in-python/)
 
-   Calculates mean and stdev for the given data.
+Parameters:
 
-   Parameters:
-      **data** (*dictionary*) -- data dictionary
+**ipint** (*integer*) – 32 bit int ip address
 
-lib.functions.filter(line)
+Returns:
 
-   Function to filter bytes from a given line.
+human readable ip address
 
-   Parameters:
-      **line** (*bytes*) -- a given string
+ `lib.functions.``data_statistics`(*data*)[¶](#lib.functions.data_statistics "Permalink to this definition")  
+Calculates mean and stdev for the given data.
 
-lib.functions.pythagoras(x1, y1, x2, y2)
+Parameters:
 
-   Calculates the distance between two points.
+**data** (*dictionary*) – data dictionary
 
-   Parameters:
-      * **x1** (*integer*) -- x coordinate
+ `lib.functions.``filter`(*line*)[¶](#lib.functions.filter "Permalink to this definition")  
+Function to filter bytes from a given line.
 
-      * **y1** (*integer*) -- y coordinate
+Parameters:
 
-      * **x2** (*integer*) -- x coordinate
+**line** (*bytes*) – a given string
 
-      * **y2** (*integer*) -- y coordinate
+ `lib.functions.``nfdump_file_notation`(*nfdump\_files*)[¶](#lib.functions.nfdump_file_notation "Permalink to this definition")  
+Converts our file notation to nfdump file notation.
 
-   Returns:
-      distance between the two points
+Parameters:
 
-=======
-lib/ids
-=======
+**nfdump\_files** (*string*) – specifies either a single file or a range of files in a directory
 
-class class lib.ids.IDS(logger, flags, config)
+Returns:
 
-   IDS class, main management class.
+nfdump file notation
 
-   coordinates_signatures()
+ `lib.functions.``pythagoras`(*x1*, *y1*, *x2*, *y2*)[¶](#lib.functions.pythagoras "Permalink to this definition")  
+Calculates the distance between two points.
 
-      Generate a coordinate dictionary for the signatures.
+Parameters:
 
-   expander(basedir, bottom, top)
+-   **x1** (*integer*) – x coordinate
+-   **y1** (*integer*) – y coordinate
+-   **x2** (*integer*) – x coordinate
+-   **y2** (*integer*) – y coordinate
 
-      Finds all the nfcapd files within the specified range.
+Returns:
 
-      Parameters:
-         * **basedir** (*string*) -- specifies what directory to
-           look in
+distance between the two points
 
-         * **bottom** (*string*) -- bottom limit
+ `lib.functions.``time_statistics`(*\*time*)[¶](#lib.functions.time_statistics "Permalink to this definition")  
+Calculates time statistics. Time is a list of variable length of unix timestamps. This function calculates the total duration (first value is assumed beginning, last value is assumed end). And from there it calculates the time spent in each phase.
 
-         * **top** (*string*) -- top limit
+Parameters:
 
-      Returns:
-         nfdump_files, a list of nfdump files
+**\*time** –
 
-   filter_signatures(number)
+unit time stamps
 
-      Function for filtering out unrequested signatures.
+Returns:
 
-      Parameters:
-         **number** (*list*) -- list created by splitting user input (
-         "1,2,3".split(',') )
+pre-formatted line
 
-   load_signatures()
+lib/ids[¶](#module-lib.ids "Permalink to this headline")
+--------------------------------------------------------
 
-      Prints available signatures and asks which one to look for.
+ *class*`lib.ids.``IDS`(*logger*, *flags*, *config*)[¶](#lib.ids.IDS "Permalink to this definition")  
+IDS class, main management class.
 
-   process_count(sig_count, data)
+ `coordinates_signatures`()[¶](#lib.ids.IDS.coordinates_signatures "Permalink to this definition")  
+Generate a coordinate dictionary for the signatures.
 
-      Counts the number of occuring signatures
+ `expander`(*basedir*, *bottom*, *top*)[¶](#lib.ids.IDS.expander "Permalink to this definition")  
+Finds all the nfcapd files within the specified range.
 
-      Parameters:
-         **data** (*dictionary*) -- data dictionary
+Parameters:
 
-      Returns:
-         counting dictionary
+-   **basedir** (*string*) – specifies what directory to look in
+-   **bottom** (*string*) – bottom limit
+-   **top** (*string*) – top limit
 
-   process_filenames(path)
+Returns:
 
-      Function to translate a range into a nfdump range
+nfdump\_files, a list of nfdump files
 
-      Parameters:
-         **path** (*string*) -- denotes the path (might be a range of
-         file)
+ `filter_signatures`(*number*)[¶](#lib.ids.IDS.filter_signatures "Permalink to this definition")  
+Function for filtering out unrequested signatures.
 
-      Returns:
-         a list of nfdump files
+Parameters:
 
-   process_files(nfdump_files)
+**number** (*list*) – list created by splitting user input ( “1,2,3”.split(‘,’) )
 
-      Creates a worker and processes files.
+ `load_signatures`()[¶](#lib.ids.IDS.load_signatures "Permalink to this definition")  
+Prints available signatures and asks which one to look for.
 
-      Parameters:
-         **nfdump_files** (*list*) -- nfdump files to process
+ `process_count`(*sig\_count*, *data*)[¶](#lib.ids.IDS.process_count "Permalink to this definition")  
+Counts the number of occuring signatures
 
-      Returns:
-         data dictiionary
+Parameters:
 
-   process_match(data)
+**data** (*dictionary*) – data dictionary
 
-      Calculate the closest match and add it to the data
+Returns:
 
-   process_sort(data)
+counting dictionary
 
-      Sorts the data based on source ip
+ `process_filenames`(*path*)[¶](#lib.ids.IDS.process_filenames "Permalink to this definition")  
+Function to translate a range into a nfdump range
 
-      Parameters:
-         **data** (*dictionary*) -- data to be sorted
+Parameters:
 
-============
-lib/logsetup
-============
+**path** (*string*) – denotes the path (might be a range of file)
+
+Returns:
+
+a list of nfdump files
+
+ `process_files`(*nfdump\_files*)[¶](#lib.ids.IDS.process_files "Permalink to this definition")  
+Creates a worker and processes files.
+
+Parameters:
+
+**nfdump\_files** (*list*) – nfdump files to process
+
+Returns:
+
+data dictiionary
+
+ `process_match`(*data*)[¶](#lib.ids.IDS.process_match "Permalink to this definition")  
+Calculate the closest match and add it to the data
+
+ `process_sort`(*data*)[¶](#lib.ids.IDS.process_sort "Permalink to this definition")  
+Sorts the data based on source ip
+
+Parameters:
+
+**data** (*dictionary*) – data to be sorted
+
+lib/logsetup[¶](#lib-logsetup "Permalink to this headline")
+-----------------------------------------------------------
 
 Yes, this library is named after the Alice in Wonderland character.
 
-lib.logsetup.log_setup(name, log_file, log_level)
+ `lib.logsetup.``log_setup`(*name*, *log\_file*, *log\_level*)[¶](#lib.logsetup.log_setup "Permalink to this definition")  
+Function to setup a logger, based on the given configuration.
 
-   Function to setup a logger, based on the given configuration.
+Parameters:
 
-   Parameters:
-      * **name** (*str*) -- name used in logging
+-   **name** (*str*) – name used in logging
+-   **log\_file** (*str*) – specifies the log file
+-   **log\_level** (*str*) – specifies the log level
 
-      * **log_file** (*str*) -- specifies the log file
+Returns:
 
-      * **log_level** (*str*) -- specifies the log level
+logger object
 
-   Returns:
-      logger object
+lib/printer[¶](#module-lib.printer "Permalink to this headline")
+----------------------------------------------------------------
 
-===========
-lib/printer
-===========
+ `lib.printer.``format_value`(*item*, *value*)[¶](#lib.printer.format_value "Permalink to this definition")  
+Formats values according to some set rules.
 
-lib.printer.format_value(item, value)
+Parameters:
 
-   Formats values according to some set rules.
+-   **item** (*string*) – identifier, what kind of value is given
+-   **value** – value of the item
 
-   Parameters:
-      * **item** (*string*) -- identifier, what kind of value is
-        given
+Returns:
 
-      * **value** -- value of the item
+formatted string
 
-   Returns:
-      formatted string
+ `lib.printer.``get_action`(*action*)[¶](#lib.printer.get_action "Permalink to this definition")  
+Returns the appropriate function for the given action.
 
-lib.printer.get_action(action)
+Parameters:
 
-   Returns the appropriate function for the given action.
+**action** (*string*) – action to take
 
-   Parameters:
-      **action** (*string*) -- action to take
+ `lib.printer.``get_options`()[¶](#lib.printer.get_options "Permalink to this definition")  
+Returns a string based on the given flags. Usefull for filenames.
 
-lib.printer.get_options()
+Returns:
 
-   Returns a string based on the given flags. Usefull for filenames.
+string with options
 
-   Returns:
-      string with options
+ `lib.printer.``header`(*fd*, *action*, *data*)[¶](#lib.printer.header "Permalink to this definition")  
+Prints a header for a given data set.
 
-lib.printer.header(fd, action, data)
+Parameters:
 
-   Prints a header for a given data set.
+-   **fd** (*io.BufferedWriter or subprocess.Popen*) – filedescriptor, can be an actual filedescriptor or a pager
+-   **action** (*string*) – specifies where the output should go
+-   **data** (*dictionary*) – the data set
 
-   Parameters:
-      * **fd** (*io.BufferedWriter or subprocess.Popen*) --
-        filedescriptor, can be an actual filedescriptor or a pager
+Returns:
 
-      * **action** (*string*) -- specifies where the output should
-        go
+list of used items
 
-      * **data** (*dictionary*) -- the data set
+ `lib.printer.``legenda`(*fd*, *action*, *count*)[¶](#lib.printer.legenda "Permalink to this definition")  
+Prints a legenda to the given file descriptor.
 
-   Returns:
-      list of used items
+Parameters:
 
-lib.printer.legenda(fd, action, count)
+-   **fd** (*io.BufferedWriter or subprocess.Popen*) – filedescriptor, can be an actual filedescriptor or a pager
+-   **action** (*string*) – specifies where the output should go
+-   **count** (*dictionary*) – dictionary containing signature hit counters
 
-   Prints a legenda to the given file descriptor.
+ `lib.printer.``open_file`(*output\_dir*, *signatures*, *date*)[¶](#lib.printer.open_file "Permalink to this definition")  
+Open a file descriptor.
 
-   Parameters:
-      * **fd** (*io.BufferedWriter or subprocess.Popen*) --
-        filedescriptor, can be an actual filedescriptor or a pager
+Parameters:
 
-      * **action** (*string*) -- specifies where the output should
-        go
+-   **signatures** (*dictionary*) – dictionary of used signatures
+-   **output\_dir** (*string*) – specifies the output directory
 
-      * **count** (*dictionary*) -- dictionary containing signature
-        hit counters
+Returns:
 
-lib.printer.open_file(output_dir, signatures, date)
+file descriptor
 
-   Open a file descriptor.
+ `lib.printer.``open_pager`(*output*)[¶](#lib.printer.open_pager "Permalink to this definition")  
+Opens a pager with to the given output (usually sys.stdout).
 
-   Parameters:
-      * **signatures** (*dictionary*) -- dictionary of used
-        signatures
+Parameters:
 
-      * **output_dir** (*string*) -- specifies the output directory
+**output** – specifies to where the output should go
 
-   Returns:
-      file descriptor
+ `lib.printer.``open_parsable_file`(*output\_dir*, *signatures*, *date*)[¶](#lib.printer.open_parsable_file "Permalink to this definition")  
+Function for opening a file for parsable output.
 
-lib.printer.open_pager(output)
+Parameters:
 
-   Opens a pager with to the given output (usually sys.stdout).
+-   **output\_dir** (*string*) – specifies the output directory
+-   **signatures** (*list*) – a list of the used signatures
+-   **date** (*string*) – a date string
 
-   Parameters:
-      **output** -- specifies to where the output should go
+Returns:
 
-lib.printer.open_parsable_file(output_dir, signatures, date)
+a filedescriptor
 
-   Function for opening a file for parsable output.
+ `lib.printer.``print_data`(*fd*, *action*, *signatures*, *data*, *count*)[¶](#lib.printer.print_data "Permalink to this definition")  
+Prints data to the given filedescriptor
 
-   Parameters:
-      * **output_dir** (*string*) -- specifies the output directory
+Parameters:
 
-      * **signatures** (*list*) -- a list of the used signatures
+-   **fd** (*io.BufferedWriter or subprocess.Popen*) – filedescriptor
+-   **action** (*string*) – the action to take
+-   **data** (*dictionary*) – the data dictionary to print
+-   **count** (*dictionary*) – signature hit count dictionary
 
-      * **date** (*string*) -- a date string
+ `lib.printer.``print_dstip`(*signatures*, *data*, *srcip*, *dstip*, *used*)[¶](#lib.printer.print_dstip "Permalink to this definition")  
+Formats the data fields belonging to the destination in a nice line.
 
-   Returns:
-      a filedescriptor
+Parameters:
 
-lib.printer.print_data(fd, action, signatures, data, count)
+-   **data** (*dictionary*) – data dictionary
+-   **srcip** (*string*) – the source ip
+-   **dstip** (*string*) – the destination ip
+-   **used** (*list*) – list of used data fields (the header function returns this)
 
-   Prints data to the given filedescriptor
+Returns:
 
-   Parameters:
-      * **fd** (*io.BufferedWriter or subprocess.Popen*) --
-        filedescriptor
+formatted string
 
-      * **action** (*string*) -- the action to take
+ `lib.printer.``print_parsable_data`(*fd*, *data*)[¶](#lib.printer.print_parsable_data "Permalink to this definition")  
+Prints the data in a parsable manner to the filedescriptor.
 
-      * **data** (*dictionary*) -- the data dictionary to print
+Parameters:
 
-      * **count** (*dictionary*) -- signature hit count dictionary
+-   **fd** (*io.BufferedWriter*) – file descriptor
+-   **data** (*dictionary*) – dictionary to print
 
-lib.printer.print_dstip(signatures, data, srcip, dstip, used)
+ `lib.printer.``print_parsable_dstip`(*data*, *srcip*, *dstip*)[¶](#lib.printer.print_parsable_dstip "Permalink to this definition")  
+Returns a parsable data line for the destination data.
 
-   Formats the data fields belonging to the destination in a nice
-   line.
+Parameters:
 
-   Parameters:
-      * **data** (*dictionary*) -- data dictionary
+-   **data** (*dictionary*) – the data source
+-   **scrip** – the source ip
+-   **dstip** (*string*) – the destination ip
 
-      * **srcip** (*string*) -- the source ip
+Returns:
 
-      * **dstip** (*string*) -- the destination ip
+a line of urls and their hitcount
 
-      * **used** (*list*) -- list of used data fields (the header
-        function returns this)
+ `lib.printer.``print_parsable_urls`(*urls*)[¶](#lib.printer.print_parsable_urls "Permalink to this definition")  
+Converts a urls dictionary into a single line.
 
-   Returns:
-      formatted string
+Parameters:
 
-lib.printer.print_parsable_data(fd, data)
+**urls** – dictionary of urls and their hitcount
 
-   Prints the data in a parsable manner to the filedescriptor.
+Type:
 
-   Parameters:
-      * **fd** (*io.BufferedWriter*) -- file descriptor
+urls: dictionary
 
-      * **data** (*dictionary*) -- dictionary to print
+Returns:
 
-lib.printer.print_parsable_dstip(data, srcip, dstip)
+string of urls
 
-   Returns a parsable data line for the destination data.
+ `lib.printer.``print_srcip`(*data*, *srcip*, *used*)[¶](#lib.printer.print_srcip "Permalink to this definition")  
+Formats the data fields belonging to the source in a nice line.
 
-   Parameters:
-      * **data** (*dictionary*) -- the data source
+Parameters:
 
-      * **scrip** -- the source ip
+-   **data** (*dictionary*) – data dictionary
+-   **srcip** (*string*) – the source ip
+-   **used** (*list*) – list of used data fields (the header function returns this)
 
-      * **dstip** (*string*) -- the destination ip
+Returns:
 
-   Returns:
-      a line of urls and their hitcount
+formatted string
 
-lib.printer.print_parsable_urls(urls)
+ `lib.printer.``print_urls`(*fd*, *action*, *color*, *urls*)[¶](#lib.printer.print_urls "Permalink to this definition")  
+Function for nicely printing a dictionary of urls. The dictionary is expected to hold a hit count.
 
-   Converts a urls dictionary into a single line.
+Parameters:
 
-   Parameters:
-      **urls** -- dictionary of urls and their hitcount
+-   **fd** (*io.BufferedWriter or subprocess.Popen*) – filedescriptor, can be an actual filedescriptor or a pager
+-   **action** (*string*) – specifies where the output should go
+-   **color** (*string or None*) – denotes the color
+-   **urls** (*dictionary*) – dictionary of urls
 
-   Type:
-      urls: dictionary
+ `lib.printer.``write_to_file`(*fd*, *message*, *color=None*)[¶](#lib.printer.write_to_file "Permalink to this definition")  
+Writes a message to the given file descriptor. It takes care of line endings and encoding for you.
 
-   Returns:
-      string of urls
+Parameters:
 
-lib.printer.print_srcip(data, srcip, used)
+-   **fd** (*io.BufferedWriter*) – the filedescriptor
+-   **message** (*string*) – the message to be written
+-   **color** – dummy variable, not used
 
-   Formats the data fields belonging to the source in a nice line.
+ `lib.printer.``write_to_pager`(*pager*, *message*, *color*)[¶](#lib.printer.write_to_pager "Permalink to this definition")  
+Writes a message to the given pager. If termcolor is available it will even be written in the given color.
 
-   Parameters:
-      * **data** (*dictionary*) -- data dictionary
+Parameters:
 
-      * **srcip** (*string*) -- the source ip
+-   **pager** (*subprocess.Popen*) – the pager to write to
+-   **message** (*string*) – the message to write
+-   **color** (*string*) – the color to write the message in
 
-      * **used** (*list*) -- list of used data fields (the header
-        function returns this)
+lib/signature[¶](#module-lib.signature "Permalink to this headline")
+--------------------------------------------------------------------
 
-   Returns:
-      formatted string
+ *class*`lib.signature.``Worker`(*logger*, *flags*, *signatures*, *coordinates*, *data*)[¶](#lib.signature.Worker "Permalink to this definition")  
+Signature worker class
 
-lib.printer.print_urls(fd, action, color, urls)
+ `get_result`()[¶](#lib.signature.Worker.get_result "Permalink to this definition")  
+Returns the result.
 
-   Function for nicely printing a dictionary of urls. The dictionary
-   is expected to hold a hit count.
+Returns:
 
-   Parameters:
-      * **fd** (*io.BufferedWriter or subprocess.Popen*) --
-        filedescriptor, can be an actual filedescriptor or a pager
+data dictionary
 
-      * **action** (*string*) -- specifies where the output should
-        go
+ `match_signature`(*data*, *signatures*, *srcip*, *dstip*)[¶](#lib.signature.Worker.match_signature "Permalink to this definition")  
+Function for matching a signature
 
-      * **color** (*string or None*) -- denotes the color
+Parameters:
 
-      * **urls** (*dictionary*) -- dictionary of urls
+-   **data** (*dictionary*) – data dictionary
+-   **signatures** (*dictionary*) – signatures dictionary
+-   **srcip** (*string*) – source ip
+-   **dstip** (*string*) – destination ip
 
-lib.printer.write_to_file(fd, message, color=None)
+Returns:
 
-   Writes a message to the given file descriptor. It takes care of
-   line endings and encoding for you.
+matched signature
 
-   Parameters:
-      * **fd** (*io.BufferedWriter*) -- the filedescriptor
+ `run`()[¶](#lib.signature.Worker.run "Permalink to this definition")  
+Main function of the signature worker. Matches signatures in the given data.
 
-      * **message** (*string*) -- the message to be written
+lib/validator[¶](#module-lib.validator "Permalink to this headline")
+--------------------------------------------------------------------
 
-      * **color** -- dummy variable, not used
+ *class*`lib.validator.``Validator`(*logger*, *flags*, *config*, *signature*)[¶](#lib.validator.Validator "Permalink to this definition")  
+Class used for validation purposes.
 
-lib.printer.write_to_pager(pager, message, color)
+ `calculate_rates`()[¶](#lib.validator.Validator.calculate_rates "Permalink to this definition")  
+Calculates the TPR, TNR, FPR and FNR rates.
 
-   Writes a message to the given pager. If termcolor is available it
-   will even be written in the given color.
+ `data_merger`(*data*)[¶](#lib.validator.Validator.data_merger "Permalink to this definition")  
+Merges data into self.data.
 
-   Parameters:
-      * **pager** (*subprocess.Popen*) -- the pager to write to
+Parameters:
 
-      * **message** (*string*) -- the message to write
+**data** (*dictionary*) – a data dictionary to be merged into self.data
 
-      * **color** (*string*) -- the color to write the message in
+ `filter_attackers`(*attackers*, *cusum*)[¶](#lib.validator.Validator.filter_attackers "Permalink to this definition")  
+Filters the attackers list for a given cusum (flow record threshold).
 
-=============
-lib/signature
-=============
+Parameters:
 
-class class lib.signature.Worker(logger, flags, signatures, coordinates, data)
+-   **attackers** (*list*) – attackers list
+-   **cusum** (*int*) – the minimum cusum rate (flow record threshold)
 
-   Signature worker class
+Returns:
 
-   get_result()
+a filtered attackers list
 
-      Returns the result.
+ `load_attackers`(*cusum*)[¶](#lib.validator.Validator.load_attackers "Permalink to this definition")  
+Function for loading the attacker lists. These lists should be in the ‘includes’ folder, named as ‘attackers\_fa.dump’ and ‘attackers\_ba.dump’.
 
-      Returns:
-         data dictionary
+Parameters:
 
-   match_signature(data, signatures, srcip, dstip)
+**cusum** (*int*) – the minimum cusum rate (flow record threshold)
 
-      Function for matching a signature
+ `print_rates`()[¶](#lib.validator.Validator.print_rates "Permalink to this definition")  
+Prints the rates to the logger.
 
-      Parameters:
-         * **data** (*dictionary*) -- data dictionary
+ `processor`(*data*)[¶](#lib.validator.Validator.processor "Permalink to this definition")  
+The actual validation process, i.e. grab a worker and tell him to do it.
 
-         * **signatures** (*dictionary*) -- signatures dictionary
+Parameters:
 
-         * **srcip** (*string*) -- source ip
+**data** (*dictionary*) – data to be processed
 
-         * **dstip** (*string*) -- destination ip
+ `result_counter`(*data*)[¶](#lib.validator.Validator.result_counter "Permalink to this definition")  
+Keeps a count of the TP, TN, FP and FN statistics.
 
-      Returns:
-         matched signature
+Parameters:
 
-   run()
+**data** (*tuple*) – a tuple of a count dictionary and a data dictionary
 
-      Main function of the signature worker. Matches signatures in the
-      given data.
+ `save_data`(*signature*, *date*, *type\_scan*, *cusum*)[¶](#lib.validator.Validator.save_data "Permalink to this definition")  
+This function saves two files, one containing the rates. The other is a categorized dump of the data. This dump can be viewed with the ‘results\_viewer’ in the ‘scripts’ folder.
 
-=============
-lib/validator
-=============
+Parameters:
 
-class class lib.validator.Validator(logger, flags, config, signature)
+-   **signature** (*list*) – a list of used signatures in the scan
+-   **date** – a date string of when the scan was performed
+-   **type\_scan** (*list*) – ppf, bpf or ppf+bpf
+-   **cusum** (*string*) – the cusum rate (flow record threshold
 
-   Class used for validation purposes.
+lib/validator\_worker[¶](#module-lib.validator_worker "Permalink to this headline")
+-----------------------------------------------------------------------------------
 
-   calculate_rates()
+ *class*`lib.validator_worker.``Worker`(*queue*, *logger*, *signature*, *data*, *flags*, *fa*, *ba*)[¶](#lib.validator_worker.Worker "Permalink to this definition")  
+The worker class for the validator.
 
-      Calculates the TPR, TNR, FPR and FNR rates.
+ `check`(*srcip*, *dstip*, *signature*)[¶](#lib.validator_worker.Worker.check "Permalink to this definition")  
+Checks if the src \<-\> dst tuple is a TP, FN, FP or TN.
 
-   data_merger(data)
+Parameters:
 
-      Merges data into self.data.
+-   **srcip** (*string*) – the source ip
+-   **dstip** (*string*) – the destination ip
+-   **signature** (*string*) – the matched signature
 
-      Parameters:
-         **data** (*dictionary*) -- a data dictionary to be merged
-         into self.data
+Returns:
 
-   filter_attackers(attackers, cusum)
+result (‘tp’, ‘fn’, ‘fp’, ‘tn’)
 
-      Filters the attackers list for a given cusum (flow record
-      threshold).
+ `get_result`()[¶](#lib.validator_worker.Worker.get_result "Permalink to this definition")  
+Returns the achieved result.
 
-      Parameters:
-         * **attackers** (*list*) -- attackers list
+Returns:
 
-         * **cusum** (*int*) -- the minimum cusum rate (flow record
-           threshold)
+the resulting dictionary
 
-      Returns:
-         a filtered attackers list
+ `grab_data`(*line*)[¶](#lib.validator_worker.Worker.grab_data "Permalink to this definition")  
+Transforms a ids line into a dictionary.
 
-   load_attackers(cusum)
+Parameters:
 
-      Function for loading the attacker lists. These lists should be
-      in the 'includes' folder, named as 'attackers_fa.dump' and
-      'attackers_ba.dump'.
+**line** (*string*) – a line from a result file
 
-      Parameters:
-         **cusum** (*int*) -- the minimum cusum rate (flow record
-         threshold)
+Returns:
 
-   print_rates()
+data dictionary
 
-      Prints the rates to the logger.
+ `parse_data`(*line*, *id*)[¶](#lib.validator_worker.Worker.parse_data "Permalink to this definition")  
+Function for parsing the data for later analysis.
 
-   processor(data)
+Parameters:
 
-      The actual validation process, i.e. grab a worker and tell him
-      to do it.
+-   **line** (*string*) – a data line from the results file
+-   **id** (*string*) – defines it to be a TP, TN, FP or FN
 
-      Parameters:
-         **data** (*dictionary*) -- data to be processed
+ `run`()[¶](#lib.validator_worker.Worker.run "Permalink to this definition")  
+Main function that runs trough the all the lines in the results file and calls ‘stats’ on the line.
 
-   result_counter(data)
+ `split_url`(*url*)[¶](#lib.validator_worker.Worker.split_url "Permalink to this definition")  
+Splits a URL from their hit count
 
-      Keeps a count of the TP, TN, FP and FN statistics.
+Parameters:
 
-      Parameters:
-         **data** (*tuple*) -- a tuple of a count dictionary and a
-         data dictionary
+**url** (*string*) – a string of a URL and its hit count
 
-   save_data(signature, date, type_scan, cusum)
+Returns:
 
-      This function saves two files, one containing the rates. The
-      other is a categorized dump of the data. This dump can be viewed
-      with the 'results_viewer' in the 'scripts' folder.
+a tuple of the count and URL
 
-      Parameters:
-         * **signature** (*list*) -- a list of used signatures in
-           the scan
+ `stats`(*line*)[¶](#lib.validator_worker.Worker.stats "Permalink to this definition")  
+Determines the type and parses the data
 
-         * **date** -- a date string of when the scan was performed
+Parameters:
 
-         * **type_scan** (*list*) -- ppf, bpf or ppf+bpf
+**line** (*bytes*) – a line from the results file
 
-         * **cusum** (*string*) -- the cusum rate (flow record
-           threshold
+lib/worker[¶](#module-lib.worker "Permalink to this headline")
+--------------------------------------------------------------
 
-====================
-lib/validator_worker
-====================
+scripts/validate[¶](#module-scripts.validate "Permalink to this headline")
+--------------------------------------------------------------------------
 
-class class lib.validator_worker.Worker(queue, logger, signature, data, flags, fa, ba)
+Validation script, it uses the ‘Validator’ class in ‘lib.validator’ to validate a results file. Usage: ./scripts/validate.py \<path-to-result-file\> [options]
 
-   The worker class for the validator.
+The [options] are as defined by the flags library (lib.flags). To configure the logging options see ‘conf/validate.conf’.
 
-   check(srcip, dstip, signature)
+Indices and tables[¶](#indices-and-tables "Permalink to this headline")
+=======================================================================
 
-      Checks if the src <-> dst tuple is a TP, FN, FP or TN.
+-   [*Index*](genindex.html)
+-   [*Module Index*](py-modindex.html)
+-   [*Search Page*](search.html)
 
-      Parameters:
-         * **srcip** (*string*) -- the source ip
+### [Table Of Contents](index.html#document-index)
 
-         * **dstip** (*string*) -- the destination ip
+-   [main](index.html#document-main)
+-   [lib/absolom](index.html#document-lib/absolom)
+-   [lib/config](index.html#document-lib/config)
+-   [lib/flags](index.html#document-lib/flags)
+-   [lib/functions](index.html#document-lib/functions)
+-   [lib/ids](index.html#document-lib/ids)
+-   [lib/logsetup](index.html#document-lib/logsetup)
+-   [lib/printer](index.html#document-lib/printer)
+-   [lib/signature](index.html#document-lib/signature)
+-   [lib/validator](index.html#document-lib/validator)
+-   [lib/validator\_worker](index.html#document-lib/validator_worker)
+-   [lib/worker](index.html#document-lib/worker)
+-   [scripts/validate](index.html#document-scripts/validate)
 
-         * **signature** (*string*) -- the matched signature
+### Navigation
 
-      Returns:
-         result ('tp', 'fn', 'fp', 'tn')
+-   [https-ids 0.8 documentation](index.html#document-index) »
 
-   get_result()
-
-      Returns the achieved result.
-
-      Returns:
-         the resulting dictionary
-
-   grab_data(line)
-
-      Transforms a ids line into a dictionary.
-
-      Parameters:
-         **line** (*string*) -- a line from a result file
-
-      Returns:
-         data dictionary
-
-   parse_data(line, id)
-
-      Function for parsing the data for later analysis.
-
-      Parameters:
-         * **line** (*string*) -- a data line from the results file
-
-         * **id** (*string*) -- defines it to be a TP, TN, FP or FN
-
-   run()
-
-      Main function that runs trough the all the lines in the results
-      file and calls 'stats' on the line.
-
-   split_url(url)
-
-      Splits a URL from their hit count
-
-      Parameters:
-         **url** (*string*) -- a string of a URL and its hit count
-
-      Returns:
-         a tuple of the count and URL
-
-   stats(line)
-
-      Determines the type and parses the data
-
-      Parameters:
-         **line** (*bytes*) -- a line from the results file
-
-==========
-lib/worker
-==========
-
-================
-scripts/validate
-================
-
-Validation script, it uses the 'Validator' class in 'lib.validator' to
-validate a results file. Usage: ./scripts/validate.py <path-to-result-
-file> [options]
-
-The [options] are as defined by the flags library (lib.flags). To
-configure the logging options see 'conf/validate.conf'.
+© Copyright 2014, Olivier van der Toorn. Created using [Sphinx](http://sphinx-doc.org/) 1.2.2.
