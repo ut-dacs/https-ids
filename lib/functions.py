@@ -137,3 +137,20 @@ def time_statistics(*time):
 
   line = "\n".join([total, percentage])
   return line
+
+def automation_signatures(signatures, config):
+  """Function for converting configured signatures into numbers 'main.py' understands.
+
+  :param signatures: dictionary of available signatures
+  :type signatures: dictionary
+  :param config: configured signatures
+  :type config: string
+  :return: a string of signatures main.py understands
+  """
+  config = config.replace(" ", "").split(",")
+  numbers = []
+  for i,signature in enumerate(sorted(signatures)):
+    if signature in config:
+      numbers.append(str(i+1))
+  numbers = ",".join(numbers)
+  return numbers
