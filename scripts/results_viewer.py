@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 # Author:       Olivier van der Toorn <o.i.vandertoorn@student.utwente.nl>
-# Description:  Dump viewer
+"""Toolie for viewing categorized result dumps created by the validation scripts.
+Usage ./results_viewer.py <results-dump> <tp|tn|fp|fn> [options]
 
+The [options] are as defined by the flags library (lib.flags).
+"""
 import logging
 import pickle
 import os
@@ -16,44 +19,35 @@ import lib.ids
 import lib.printer
 import lib.flags
 
-flags = lib.flags.get_flags()
-flags['output_value'] = 'pager'
-flags['sig'] = True
-flags['sig_value'] = '1,3,5,7'
-flags['violate'] = True
+def load_dump(flags):
+  if flags['test'] == False:
+    with open(sys.argv[1], 'rb') as dump_file:
+      data = pickle.load(dump_file)
 
-def load_dump():
-
-  dump_file = open(sys.argv[1], 'rb')
-  data = pickle.load(dump_file)
-  dump_file.close()
-
-  #src ip: list(data['all'].keys())[0]
-  #dst ip: list(data['all'][list(data['all'].keys())[0]]['targets'])[0]
-  data_length = len(data['all'][list(data['all'].keys())[0]]['targets'][list(data['all'][list(data['all'].keys())[0]]['targets'])[0]])
-  if data_length == 7 or data_length == 8 or data_length == 10:
-
-    flags['absolom'] = True
+  else:
+    data = {sys.argv[2]: {}}
   return data
 
 def main():
-
   if len(sys.argv) < 3:
+    lib.flags.show_help()
 
-    print("Usage: {0} <result-dump> <tp, tn, fp, fn>".format(sys.argv[0]))
-    sys.exit()
+    # Add support for starting in the scripts directory
+  if not 'conf' in os.listdir() and 'conf'in os.listdir('../'):
+    sys.argv[1] = os.path.abspath(sys.argv[1])
+    os.chdir('../')
 
-  data = load_dump()
+  flags = lib.flags.get_flags()
+  flags['output_value'] = 'pager'
+  flags['violate'] = True
+
   ids = lib.ids.IDS(logging.getLogger('IDS'), flags, lib.config.read_config('ids'))
-  ids.extended = True
-  ids.flags = flags
-  ids.load_signatures()
-  ids.data = data[sys.argv[2]]
 
+  data = load_dump(flags)
+  ids.data = data[sys.argv[2]]
   ids.data = ids.process_sort(ids.data)
   with lib.printer.open_pager(sys.stdout) as pager:
     lib.printer.print_data(pager, 'pager', ids.signatures, ids.data, {})
 
 if __name__ == "__main__":
-
   main()

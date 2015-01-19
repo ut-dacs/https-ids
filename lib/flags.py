@@ -87,6 +87,12 @@ def show_help():
 
   elif "validate" in sys.argv[0]:
     type_file = "<results-file>"
+
+  elif "results_viewer" in sys.argv[0]:
+    type_file = "<results-dump> <tp|tn|fp|fn>"
+
+  else:
+    type_file = "<files>"
   print("Usage {0} {1} [options]".format(sys.argv[0], type_file))
   if "main" in sys.argv[0]:
     print()
@@ -101,6 +107,10 @@ the syntax is for this is: <path-to-directory>:<lower-boundary>:<upper-boundary>
       pass
 
     elif item in ['bytes', 'cusum', 'flow', 'ip', 'packets', 'output', 'sig', 'tcp_flags', 'time', 'url'] and 'validate' in sys.argv[0]:
+      pass
+
+    elif item in ['break', 'bytes', 'cusum', 'flows', 'ip', 'packets',
+                  'output', 'sig', 'tcp_flags', 'threads', 'time', 'url'] and 'results_viewer' in sys.argv[0]:
       pass
 
     elif item in help.keys():
