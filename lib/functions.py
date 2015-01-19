@@ -99,6 +99,12 @@ def check_accept(flags, signatures, signature, x, y):
     return accepted
 
 def nfdump_file_notation(nfdump_files):
+  """Converts our file notation to nfdump file notation.
+
+  :param nfdump_files: specifies either a single file or a range of files in a directory
+  :type nfdump_files: string
+  :return: nfdump file notation
+  """
   nfdump_files = sorted(nfdump_files)
   if len(nfdump_files) > 1:
     begin = nfdump_files[0]
@@ -115,6 +121,14 @@ def nfdump_file_notation(nfdump_files):
   return nfdump_notation
 
 def time_statistics(*time):
+  """Calculates time statistics. Time is a list of variable length of unix timestamps.
+  This function calculates the total duration (first value is assumed beginning, last value is assumed end).
+  And from there it calculates the time spent in each phase.
+
+  :param *time: unit time stamps
+  :type *time: int
+  :return: pre-formatted line
+  """
   diff = []
   percentages = []
   total_time = time[-1] - time[0]
